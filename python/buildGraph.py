@@ -97,13 +97,5 @@ def buildDatasetGraph(filename, min_degree):
                 adjacency[i] = []
         if loopflag:
             break
-            
-    # Don't delete the people without enough friends for indexing purposes
-    # i = 0
-    # while i < len(adjacency):
-        # if len(adjacency[i]) < 1:
-            # adjacency.pop(i)
-        # else:
-            # i += 1
     
     return adjacency

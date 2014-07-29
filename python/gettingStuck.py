@@ -58,8 +58,6 @@ if __name__ == "__main__":
     filename = prefix + 'out.facebook-wosn-links'
     min_degree = 3;
     max_time = 10
-    alpha = 0.5;
-    beta = 1;
     max_infection = 3
     p_fb, num_infected = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)

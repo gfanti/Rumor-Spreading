@@ -55,7 +55,7 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
     
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     num_nodes = len(adjacency)
-    timesteps = 1
+    timesteps = 0
     
     # initially the virtual source and the true source are the same
     virtual_source = source
@@ -68,11 +68,11 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     
     blocked = False
     
-    while timesteps <= max_time:
+    while timesteps < max_time:
         # print('time', timesteps)
     
         # in odd timesteps, choose a direction to expand in
-        if timesteps == 1:
+        if timesteps == 0:
             current_neighbors = [k for k in adjacency[source]]
             virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
             
@@ -139,7 +139,8 @@ def compute_alpha(m,T,d):
     elif m == 2:
         alpha = d/(d-1) * alpha1 - 1/(d-1)
     else:
-        alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
+        # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
+        alpha = ((1-alpha1)/(d-2))/pow(d-1,m-1) + (alpha1*(d-1)-1)/(d-2)
     return alpha
 
 def N(T,d):
@@ -151,9 +152,7 @@ def N(T,d):
     # Outputs
     #       n           the number of nodes at time T
     
-    n = 0
-    for i in range(T):
-        n += d * pow(d-1,i)
+    n = d / (d-2) * (pow(d-1,T)-1)
     return n
     
 def infect_nodes_deterministic(source, adjacency):
