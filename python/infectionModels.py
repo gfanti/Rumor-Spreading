@@ -65,7 +65,6 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     infection_pattern[source] = 1;
     who_infected = [[] for i in range(num_nodes)]
     num_infected = 0
-    # infected_adjacency = [[] for i in range(num_nodes)]
     
     blocked = False
     
@@ -74,7 +73,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     
         # in odd timesteps, choose a direction to expand in
         if timesteps == 1:
-            current_neighbors = [k for k in adjacency[source] if infection_pattern[k]==0]
+            current_neighbors = [k for k in adjacency[source]]
             virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
             
             # infect twice in one direction, always
@@ -87,20 +86,20 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
 
-            if random.random() < compute_alpha(m,timesteps,max_infection):     # with probability alpha, we should expand in all directions (keep the virtual source where it is)
+            if random.random() < compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+                
+                # if there is nowhere for the virtual source to move, keep it where it is
                 if len(current_neighbors) < 1:
-                    # print('Blocked. Total neighbors: ',adjacency[node])
-                    # print('Available neighbors: ',current_neighbors)
                     blocked = True
                     break
                     
                 # branch once in every direction
-                # print('spreading symmetrically')
                 for neighbor in current_neighbors:
                     infection_pattern, who_infected = pass_branch_message(virtual_source, neighbor, infection_pattern, adjacency, max_infection, who_infected)
                 if len(current_neighbors) == 1:
                     infection_pattern, who_infected = pass_branch_message(current_neighbors[0], virtual_source, infection_pattern, adjacency, max_infection, who_infected)
-            else:
+            
+            else:           # spread asymmetrically
                 
                 # find a direction to move
                 previous_vs_candidate = virtual_source_candidate
@@ -112,7 +111,6 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
                 # the virtual source moves one more hop away from the true source
                 m += 1;
                 
-                # print('spreading asymmetrically')
                 # branch twice in one direction
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
@@ -121,12 +119,20 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             
             
         num_infected = sum(infection_pattern)
-        # print('num infected', num_infected)
         timesteps += 1
         
     return num_infected, infection_pattern
     
 def compute_alpha(m,T,d):
+    # Compute the probability of keeping the virtual source
+    # Inputs
+    #       m:          distance from the virtual source to the true source, in hops
+    #       T:          time
+    #       d:          degree of the d-regular tree
+    #
+    # Outputs
+    #       alpha:      the probability of keeping the virtual source where it is
+    
     alpha1 = N(T,d) / (N(T+1,d))
     if m == 1:
         return alpha1
@@ -137,6 +143,14 @@ def compute_alpha(m,T,d):
     return alpha
 
 def N(T,d):
+    # Compute the number of nodes at time T in a d-regular graph
+    # Inputs
+    #       T:          time
+    #       d:          degree of the d-regular tree
+    #
+    # Outputs
+    #       n           the number of nodes at time T
+    
     n = 0
     for i in range(T):
         n += d * pow(d-1,i)
@@ -156,15 +170,11 @@ def infect_nodes_deterministic(source, adjacency):
     while num_infected < num_nodes:
         
         for node in old_infecting_nodes:
-            # print(infection_pattern,node)
-            # print('neighbors',adjacency[node])
             current_neighbors = [k for k in adjacency[node] if infection_pattern[k]==0]
-            # print('valid neighbors: ',current_neighbors)
             if len(current_neighbors) < 2:
-                # print('Blocked. Total neighbors: ',adjacency[node])
-                # print('Available neighbors: ',current_neighbors)
                 blocked = True
                 break
+            # if you're an up node, create an up and a down node
             if infection_pattern[node] == 1:
                 up_elements, current_neighbors = pick_random_elements(current_neighbors,1)
                 for item in up_elements:
@@ -173,11 +183,13 @@ def infect_nodes_deterministic(source, adjacency):
                 for item in down_elements:
                     infection_pattern[item] = -1
                 new_infecting_nodes = new_infecting_nodes + up_elements + down_elements
+            # if you're a down node, create two down nodes
             elif infection_pattern[node] == -1:
                 down_elements, current_neighbors = pick_random_elements(current_neighbors,2)
                 for item in down_elements:
                     infection_pattern[item] = -1
                 new_infecting_nodes = new_infecting_nodes + down_elements
+            # otherwise, something's wrong
             else:
                 print('ERROR')
                 
@@ -191,6 +203,15 @@ def infect_nodes_deterministic(source, adjacency):
     return num_infected, infection_pattern
         
 def pick_random_elements(neighbors,num_neighbors):
+    # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list
+    # Inputs
+    #       neighbors:          the list of neighbors
+    #       num_neighbors:      the number of elements to pick from the list
+    #
+    # Outputs
+    #       random_elements     the neighbors chosen
+    #       neighbors           the updated neighbors, without random_elements
+    
     random_elements = []
     for i in range(num_neighbors):
         random_element = random.choice(neighbors)
@@ -200,9 +221,18 @@ def pick_random_elements(neighbors,num_neighbors):
         
         
 def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
+    # pass an instruction to branch from the source to the leaves overn an infinite tree
+    # Inputs
+    #       source:             source of the infection
+    #       recipient:          array of child ids
+    #       adjacency:          adjacency relations for the infected subgraph
+    #       max_degree:         degree of each node in the regular tree     
+    #
+    # Outputs
+    #       adjacency          (updated)
+
     leaf = True
     neighbors = adjacency[recipient]
-    # print('neighbors are ',neighbors)
     for neighbor in neighbors:
         if not neighbor == source:
             leaf = False
@@ -213,46 +243,54 @@ def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
     return adjacency
     
 def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected):
+    # pass an instruction to branch from the source to the leaves
+    # Inputs
+    #       source:             source of the infection
+    #       recipient:          array of child ids
+    #       infection_pattern:  binary array describing whether each node is already infected or not
+    #       adjacency:          adjacency relations for the underlying network
+    #       max_infection:      maximum number of people who can be infected by a single node     
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       infection_pattern   (updated)
+    #       who_infected        (updated)
+    
     leaf = True
-    
-    # print('adjacency [recipient]',adjacency[recipient])
-    
-    # pass only to already infected nodes that are not the source
-    # neighbors = [k for k in adjacency[recipient] if (not k in visited_nodes) and (infection_pattern[k] == 1)]
-    # print('neighbors',neighbors)
     
     # pass to the neighbors who are your neighbors in the true infection graph
     neighbors = [k for k in who_infected[recipient] if (not k == source)]
     
-    # print(neighbors,len(adjacency[recipient]))
-    
     for neighbor in neighbors:
         leaf = False
-        # visited_nodes.append(neighbor)
         infection_pattern, who_infected =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected)
-        # print(neighbors, sum(infection_pattern),source)
-        # input("Press Enter to continue...")
             
     if leaf:
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains = pick_random_elements(neighbors,max_infection)
-        # print('infecting ',len(neighbors),' neighbors')
         infection_pattern,who_infected = infect_nodes(recipient, neighbors, infection_pattern, adjacency, who_infected)
-        # print('num nodes infected = ',sum(infection_pattern))
     return infection_pattern, who_infected
         
 def infect_nodes_infinite_tree(node, num_children, adjacency):
     adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
-    # print('new item',[[node] for i in range(num_children)])
     adjacency = adjacency + [[node] for i in range(num_children)]
-    
-    # print('new adjacency', adjacency)
     return adjacency
     
 def infect_nodes(node, children, infection_pattern, adjacency, who_infected):
+    # infect_nodes infects the nodes listed in children from 'node'
+    # Inputs
+    #       node:               source of the infection
+    #       children:           array of child ids
+    #       infection_pattern:  binary array describing whether each node is already infected or not
+    #       adjacency:          adjacency relations for the underlying network
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       infection_pattern   (updated)
+    #       who_infected        (updated)
+
     who_infected[node] += children
-    # children = array of child ids
     for child in children:
         infection_pattern[child] = 1
         who_infected[child] += [node]
