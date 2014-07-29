@@ -3,9 +3,26 @@ import infectionModels
 import random
 import scipy.io as io
 import numpy as np
-# builds a graph and 
 
-def runDataset(filename, min_degree, trials):
+
+'''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
+def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
+    # Run dataset runs a spreading algorithm over a dataset. 
+    # Inputs:
+    #
+    #       filename:               name of the file containing the data
+    #       min_degree:             remove all nodes with degree lower than min_degree
+    #       trials:                 number of trials to run
+    #       max_time(opt):          the maximum number of timesteps to use
+    #       max_infection(opt):     the maximum number of nodes a node can infect in any given timestep
+    #
+    # Outputs:
+    #
+    #       p:                      average proportion of nodes reached by the algorithm 
+    #       num_infected:           total number of nodes infected by the algorithm
+    #
+    # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
+    
     adjacency = buildGraph.buildDatasetGraph(filename, min_degree)
     # print(adjacency)
     num_nodes = len(adjacency)
@@ -15,67 +32,47 @@ def runDataset(filename, min_degree, trials):
     p = 0
     
     for trial in range(trials):
+        if trial % 20 == 0:
+            print('Trial ',trial, ' / ',trials)
         while True:
             source = random.randint(0,num_nodes-1)
             if len(adjacency[source]) > 0:
                 break
-        num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
-        p += num_infected / (1.0 * num_true_nodes)
-    p = p / trials
-    return p, num_infected
-  
-def runDatasetAdaptiveDiff(filename, trials, max_time, alpha, beta, max_infection):
-    adjacency = buildGraph.buildDatasetGraph(filename, min_degree)
-    # print(adjacency)
-    num_nodes = len(adjacency)
-    num_true_nodes = sum([len(item)>0 for item in adjacency])
-    print('nonzero nodes:',num_true_nodes)
-    num_infected = 0
-    p = 0
-    
-    for trial in range(trials):
-        while True:
-            source = random.randint(0,num_nodes-1)
-            if len(adjacency[source]) > 0:
-                break
-        num_infected, infection_pattern = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,alpha,beta, max_infection)
+        if max_infection == -1:      # i.e. we're running the deterministic version
+            num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
+        else:
+            num_infected, infection_pattern = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
     return p, num_infected
   
 if __name__ == "__main__":
 
-    trials = 1
+    trials = 100
+    prefix = '..\\data\\'
 
-    # ## 3-regular tree
-    # adjacency = [[]]
-    # max_degree = 3
-    # max_time = 5
-    # alpha = 0.5;
-    # beta = 1;
-    # adjacency, num_infected = infectionModels.infect_nodes_adaptive_diff_tree(0, adjacency, max_degree, max_time, alpha, beta)
-    # print('num infected ',num_infected)
-    # exit()
-    
+        
     ##---------- Real Graphs -------------------#
     
     # facebook
-    filename = 'out.facebook-wosn-links'
+    filename = prefix + 'out.facebook-wosn-links'
     min_degree = 3;
     max_time = 10
     alpha = 0.5;
     beta = 1;
     max_infection = 3
-    p_fb, num_infected = runDatasetAdaptiveDiff(filename, trials, max_time, alpha, beta, max_infection)
+    p_fb, num_infected = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)
    
+    exit()
     
     # power grid
-    filename = 'out.opsahl-powergrid'
+    filename = prefix + 'out.opsahl-powergrid'
     min_degree = 5;
     p_powergrid, num_infected = runDataset(filename, min_degree, trials)
-    print('Facebook result: ',p_powergrid,num_infected)
+    print('power grid result: ',p_powergrid,num_infected)
     exit() 
+    
     
     
     ##---------- Synthetic Graphs ---------------#
@@ -117,3 +114,14 @@ if __name__ == "__main__":
     
     n = [i for i in num_nodes_range]
     io.savemat('synthetic_results',{'p_scalefree':np.array(p_reached_scalefree), 'p_smallworld':np.array(p_reached_smallworld), 'n':n})
+    
+    
+    # ## 3-regular tree
+    # adjacency = [[]]
+    # max_degree = 3
+    # max_time = 5
+    # alpha = 0.5;
+    # beta = 1;
+    # adjacency, num_infected = infectionModels.infect_nodes_adaptive_diff_tree(0, adjacency, max_degree, max_time, alpha, beta)
+    # print('num infected ',num_infected)
+    # exit()

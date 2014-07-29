@@ -53,7 +53,7 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
         
     return adjacency, num_infected
     
-def infect_nodes_adaptive_diff(source, adjacency, max_time, alpha, beta, max_infection):
+def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     num_nodes = len(adjacency)
     timesteps = 1
     
@@ -70,7 +70,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, alpha, beta, max_inf
     blocked = False
     
     while timesteps <= max_time:
-        print('time', timesteps)
+        # print('time', timesteps)
     
         # in odd timesteps, choose a direction to expand in
         if timesteps == 1:
@@ -95,7 +95,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, alpha, beta, max_inf
                     break
                     
                 # branch once in every direction
-                print('spreading symmetrically')
+                # print('spreading symmetrically')
                 for neighbor in current_neighbors:
                     infection_pattern, who_infected = pass_branch_message(virtual_source, neighbor, infection_pattern, adjacency, max_infection, who_infected)
                 if len(current_neighbors) == 1:
@@ -112,7 +112,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, alpha, beta, max_inf
                 # the virtual source moves one more hop away from the true source
                 m += 1;
                 
-                print('spreading asymmetrically')
+                # print('spreading asymmetrically')
                 # branch twice in one direction
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
@@ -121,7 +121,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, alpha, beta, max_inf
             
             
         num_infected = sum(infection_pattern)
-        print('num infected', num_infected)
+        # print('num infected', num_infected)
         timesteps += 1
         
     return num_infected, infection_pattern
