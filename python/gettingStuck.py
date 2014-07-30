@@ -3,7 +3,7 @@ import infectionModels
 import random
 import scipy.io as io
 import numpy as np
-
+import estimation
 
 '''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
 def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
@@ -30,6 +30,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     print('nonzero nodes:',num_true_nodes)
     num_infected = 0
     p = 0
+    pd_jordan = 0
     
     for trial in range(trials):
         if trial % 20 == 0:
@@ -41,10 +42,14 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         if max_infection == -1:      # i.e. we're running the deterministic version
             num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
         else:
-            num_infected, infection_pattern = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
+            num_infected, infection_pattern, who_infected = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
+            jordan_estimate = estimation.jordan_centrality(who_infected)
+            pd_jordan += (source==jordan_estimate)
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
-    return p, num_infected
+    pd_jordan = pd_jordan / (1.0 * num_true_nodes)
+    return p, num_infected, pd_jordan
+    
   
 if __name__ == "__main__":
 
@@ -59,8 +64,9 @@ if __name__ == "__main__":
     min_degree = 3;
     max_time = 10
     max_infection = 3
-    p_fb, num_infected = runDataset(filename, min_degree, trials, max_time, max_infection)
+    p_fb, num_infected, pd_jordan = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)
+    print('Accuracy using Jordan centrality: ',pd_jordan)
    
     exit()
     

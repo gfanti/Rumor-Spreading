@@ -121,7 +121,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         num_infected = sum(infection_pattern)
         timesteps += 1
         
-    return num_infected, infection_pattern
+    return num_infected, infection_pattern, who_infected
     
 def compute_alpha(m,T,d):
     # Compute the probability of keeping the virtual source
