@@ -31,7 +31,16 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     num_infected = 0
     p = 0
     pd_jordan = [0 for i in range(max_time)]
-    pd_rumor = 0
+    pd_rumor = [0 for i in range(max_time)]
+    
+    stepsize = 5;
+    # max_infection+1 is the degree of the tree
+    max_nodes = int(infectionModels.N_nodes(max_time,max_infection+1))
+    bins = [i for i in range(1,max_nodes+stepsize+1,stepsize)]
+    jordan_found = [0 for i in range(len(bins))]
+    jordan_count = [0 for i in range(len(bins))]
+    rumor_found = [0 for i in range(len(bins))]
+    rumor_count = [0 for i in range(len(bins))]
     
     for trial in range(trials):
         if trial % 20 == 0:
@@ -43,21 +52,31 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         if max_infection == -1:      # i.e. we're running the deterministic version
             num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
         else:
-            num_infected, infection_pattern, who_infected, jordan_correct = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
+            num_infected, infection_pattern, who_infected, jordan_results, rumor_results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection,stepsize)
+            # unpack the results
+            jordan_bins, jordan_instances, jordan_detected, jordan_correct = jordan_results
+            rumor_bins, rumor_instances, rumor_detected, rumor_correct = rumor_results
             
             # rumor_estimate = estimation.rumor_centrality(who_infected)
-            pd_jordan = [i+j/(1.0*num_infected) for (i,j) in zip(pd_jordan, jordan_correct)]
-            # pd_rumor += (source == rumor_estimate)
+            pd_jordan = [i+j/(1.0) for (i,j) in zip(pd_jordan, jordan_correct)]
+            jordan_found = [i+j for (i,j) in zip(jordan_found,jordan_detected)]
+            jordan_count = [i+j for (i,j) in zip(jordan_count,jordan_instances)]
+            pd_rumor = [i+j/(1.0) for (i,j) in zip(pd_rumor, rumor_correct)]
+            rumor_found = [i+j for (i,j) in zip(rumor_found,rumor_detected)]
+            rumor_count = [i+j for (i,j) in zip(rumor_count,rumor_instances)]
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
-    pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
+    # pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
+    pd_jordan = [i/j for (i,j) in zip(jordan_found, jordan_count) if j>0]
+    pd_rumor = [i/j for (i,j) in zip(rumor_found, rumor_count) if j>0]
+    # pd_rumor = [i / (1.0 * trials) for i in pd_rumor]
     # pd_rumor = pd_rumor/(1.0*num_true_nodes)
     return p, num_infected, pd_jordan, pd_rumor
     
   
 if __name__ == "__main__":
 
-    trials = 100
+    trials = 20
     prefix = '..\\data\\'
 
         
@@ -72,7 +91,7 @@ if __name__ == "__main__":
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
     print('Accuracy using rumor centrality: ',pd_rumor)
-    io.savemat('pd_jordan',{'pd_jordan':np.array(pd_jordan), 'time':np.array([i for i in range(max_time)])})
+    io.savemat('pd',{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'time':np.array([i for i in range(max_time)])})
     exit()
     
     # power grid

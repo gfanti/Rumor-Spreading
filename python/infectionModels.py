@@ -53,7 +53,7 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
         
     return adjacency, num_infected
     
-def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
+def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
     num_nodes = len(adjacency)
     timesteps = 0
     
@@ -65,6 +65,15 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     infection_pattern[source] = 1;
     who_infected = [[] for i in range(num_nodes)]
     jordan_correct = [0 for i in range(max_time)]
+    rumor_correct = [0 for i in range(max_time)]
+    
+    # compute the bins
+    max_nodes = int(N_nodes(max_time, max_infection+1))
+    bins = [i for i in range(1,max_nodes+stepsize+1,stepsize)]
+    jordan_detected = [0 for i in range(len(bins))]
+    rumor_detected = [0 for i in range(len(bins))]
+    instances = [0 for i in range(len(bins))]
+    
     num_infected = 0
     
     blocked = False
@@ -89,7 +98,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             current_neighbors = [k for k in who_infected[virtual_source]]
 
             if random.random() < compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
-                
+                # print('stay')
                 # if there is nowhere for the virtual source to move, keep it where it is
                 if len(current_neighbors) < 1:
                     blocked = True
@@ -102,13 +111,12 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
                     infection_pattern, who_infected = pass_branch_message(current_neighbors[0], virtual_source, infection_pattern, adjacency, max_infection, who_infected)
             
             else:           # spread asymmetrically
-                
+                # print('go')
                 # find a direction to move
                 virtual_source_candidate = [previous_vs]
                 while virtual_source_candidate[0] == previous_vs:
                     virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
                 virtual_source_candidate = virtual_source_candidate[0]
-                visited_nodes = [virtual_source, virtual_source_candidate]
                 previous_vs = virtual_source
                 
                 # the virtual source moves one more hop away from the true source
@@ -118,6 +126,8 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 
+                virtual_source = virtual_source_candidate
+                
                 
             
             
@@ -126,14 +136,33 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         # print('infected subgraph', who_infected,'timesteps',timesteps)
         jordan_estimate = estimation.jordan_centrality(who_infected)
         jordan_correct[timesteps] = (jordan_estimate == source)
-        if jordan_estimate == source:
-            print('num infected', num_infected)    
+        
+        # insert this result into the histogram
+        # print('bins',bins, max_nodes)
+        # print('num currently infected:', num_infected, 'timestep: ',timesteps+1)
+        # print('\n\nAdjacency: (virtual source = ',virtual_source,' true source = ',source,')')
+        # for index in range(len(who_infected)):
+            # if who_infected[index]:
+                # print(index,' : ',who_infected[index])
+        # print('Done with this round\n')
+        bin_idx = next(x[0] for x in enumerate(bins) if x[1] > num_infected)
+        instances[bin_idx] += 1
+        jordan_detected[bin_idx] += (jordan_estimate == source)
+        jordan_results = (bins,instances,jordan_detected, jordan_correct)
+                
+        rumor_estimate = estimation.rumor_centrality(who_infected)
+        rumor_correct[timesteps] = (rumor_estimate == source)
+        rumor_detected[bin_idx] += (rumor_estimate == source)
+        rumor_results = (bins,instances,rumor_detected, rumor_correct)
+        
+        # if jordan_estimate == source:
+            # print('num infected', num_infected)    
             # print('source neighbors',who_infected[source])
             
         
         timesteps += 1
         
-    return num_infected, infection_pattern, who_infected, jordan_correct
+    return num_infected, infection_pattern, who_infected, jordan_results, rumor_results, 
     
 def compute_alpha(m,T,d):
     # Compute the probability of keeping the virtual source
@@ -148,15 +177,16 @@ def compute_alpha(m,T,d):
     alpha1 = N(T,d) / (N(T+1,d))
     if m == 1:
         return alpha1
-    elif m == 2:
-        alpha = d/(d-1) * alpha1 - 1/(d-1)
     else:
         # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
-        alpha = ((1-alpha1)/(d-2))/pow(d-1,m-1) + (alpha1*(d-1)-1)/(d-2)
+        if d > 2:
+            alpha = ((1-alpha1)/(d-2))/pow(d-1,m-1) + (alpha1*(d-1)-1)/(d-2)
+        else:
+            alpha = (T-m) / T
     return alpha
 
 def N(T,d):
-    # Compute the number of nodes at time T in a d-regular graph
+    # Compute the number of graphs that can appear at time T in a d-regular graph
     # Inputs
     #       T:          time
     #       d:          degree of the d-regular tree
@@ -164,8 +194,15 @@ def N(T,d):
     # Outputs
     #       n           the number of nodes at time T
     
-    n = d / (d-2) * (pow(d-1,T)-1)
+    if d > 2:
+        n = d / (d-2) * (pow(d-1,T)-1)
+    else:
+        n = 1 + 2*T
     return n
+    
+def N_nodes(T,d):
+    # Compute the number of nodes that appear in a graph at time T in a d-regular graph
+    return N(T,d) + 1
     
 def infect_nodes_deterministic(source, adjacency):
     num_nodes = len(adjacency)
@@ -277,6 +314,7 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
         infection_pattern, who_infected =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected)
             
     if leaf:
+        # print('leaf')
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains = pick_random_elements(neighbors,max_infection)
