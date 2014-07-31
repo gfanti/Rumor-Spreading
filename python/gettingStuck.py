@@ -31,6 +31,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     num_infected = 0
     p = 0
     pd_jordan = 0
+    pd_rumor = 0
     
     for trial in range(trials):
         if trial % 20 == 0:
@@ -44,11 +45,14 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         else:
             num_infected, infection_pattern, who_infected = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
             jordan_estimate = estimation.jordan_centrality(who_infected)
+            rumor_estimate = estimation.rumor_centrality(who_infected)
+            pd_rumor += (source == rumor_estimate)
             pd_jordan += (source==jordan_estimate)
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
     pd_jordan = pd_jordan / (1.0 * num_true_nodes)
-    return p, num_infected, pd_jordan
+    pd_rumor = pd_rumor/(1.0*num_true_nodes)
+    return p, num_infected, pd_jordan, pd_rumor
     
   
 if __name__ == "__main__":
