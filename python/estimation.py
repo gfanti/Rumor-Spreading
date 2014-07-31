@@ -5,26 +5,21 @@ def rumor_centrality_up(up_messages, who_infected, calling_node, called_node):
     if called_node == calling_node:
         for i in who_infected[called_node]:
                 up_messages = rumor_centrality_up(up_messages, who_infected, called_node, i)
-        up_messages[called_node][1] = up_messages[called_node][0] * up_messages[called_node][1]
     elif len(who_infected[called_node]) == 1:   # leaf node
-        up_messages[calling_node][0] += 1 # check
+        up_messages[calling_node] += 1 # check
     else:
         for i in who_infected[called_node]:
             if i != calling_node:
                 up_messages = rumor_centrality_up(up_messages, who_infected, called_node, i)
-        up_messages[called_node][1] = up_messages[called_node][0] * up_messages[called_node][1]
-        up_messages[calling_node][0] += up_messages[called_node][0]
-        up_messages[calling_node][1] = up_messages[calling_node][1] * up_messages[called_node][1]
+        up_messages[calling_node] += up_messages[called_node]
     return up_messages        
 
 def rumor_centrality_down(down_messages, up_messages, who_infected, calling_node, called_node):
     if called_node == calling_node:
         for i in who_infected[called_node]:
-            down_messages[called_node] = down_messages[called_node] * (1.0/(up_messages[i][1]))
-        for i in who_infected[called_node]:
             down_messages = rumor_centrality_down(down_messages, up_messages, who_infected, called_node, i)   
     else:
-        down_messages[called_node] = down_messages[calling_node]*(float(up_messages[called_node][0])/(len(who_infected)-up_messages[called_node][0]))
+        down_messages[called_node] = down_messages[calling_node]*(float(up_messages[called_node])/(len(who_infected)-up_messages[called_node]))
         for i in who_infected[called_node]:
             if i != calling_node:
                 down_messages = rumor_centrality_down(down_messages, up_messages, who_infected, called_node, i)
@@ -34,7 +29,7 @@ def rumor_centrality_down(down_messages, up_messages, who_infected, calling_node
 def rumor_centrality(who_infected):
 
     initial_node = 0       # can use arbitrary initial index
-    up_messages = [ [1,1] for i in range(len(who_infected))]
+    up_messages = [1]*len(who_infected) 
     down_messages = [1]*len(who_infected)
     up_messages = rumor_centrality_up(up_messages,who_infected,initial_node,initial_node)
     down_messages = rumor_centrality_down(down_messages,up_messages,who_infected,initial_node,initial_node)
