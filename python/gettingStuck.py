@@ -45,13 +45,13 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         else:
             num_infected, infection_pattern, who_infected = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
             jordan_estimate = estimation.jordan_centrality(who_infected)
-            rumor_estimate = estimation.rumor_centrality(who_infected)
-            pd_rumor += (source == rumor_estimate)
+            # rumor_estimate = estimation.rumor_centrality(who_infected)
             pd_jordan += (source==jordan_estimate)
+            # pd_rumor += (source == rumor_estimate)
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
     pd_jordan = pd_jordan / (1.0 * num_true_nodes)
-    pd_rumor = pd_rumor/(1.0*num_true_nodes)
+    # pd_rumor = pd_rumor/(1.0*num_true_nodes)
     return p, num_infected, pd_jordan, pd_rumor
     
   
@@ -68,9 +68,10 @@ if __name__ == "__main__":
     min_degree = 3;
     max_time = 10
     max_infection = 3
-    p_fb, num_infected, pd_jordan = runDataset(filename, min_degree, trials, max_time, max_infection)
+    p_fb, num_infected, pd_jordan, pd_rumor = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
+    print('Accuracy using rumor centrality: ',pd_rumor)
    
     exit()
     

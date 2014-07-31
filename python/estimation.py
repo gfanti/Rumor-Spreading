@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import random 
 
 def rumor_centrality_up(up_messages, who_infected, calling_node, called_node):
