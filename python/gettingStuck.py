@@ -30,7 +30,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     print('nonzero nodes:',num_true_nodes)
     num_infected = 0
     p = 0
-    pd_jordan = 0
+    pd_jordan = [0 for i in range(max_time)]
     pd_rumor = 0
     
     for trial in range(trials):
@@ -43,14 +43,14 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         if max_infection == -1:      # i.e. we're running the deterministic version
             num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
         else:
-            num_infected, infection_pattern, who_infected = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
-            jordan_estimate = estimation.jordan_centrality(who_infected)
+            num_infected, infection_pattern, who_infected, jordan_correct = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
+            
             # rumor_estimate = estimation.rumor_centrality(who_infected)
-            pd_jordan += (source==jordan_estimate)
+            pd_jordan = [i+j/(1.0*num_infected) for (i,j) in zip(pd_jordan, jordan_correct)]
             # pd_rumor += (source == rumor_estimate)
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
-    pd_jordan = pd_jordan / (1.0 * num_true_nodes)
+    pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
     # pd_rumor = pd_rumor/(1.0*num_true_nodes)
     return p, num_infected, pd_jordan, pd_rumor
     
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
     print('Accuracy using rumor centrality: ',pd_rumor)
-   
+    io.savemat('pd_jordan',{'pd_jordan':np.array(pd_jordan), 'time':np.array([i for i in range(max_time)])})
     exit()
     
     # power grid
