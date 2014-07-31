@@ -1,5 +1,5 @@
 # node infection
-
+import estimation
 import random
 
 def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alpha, beta):
@@ -64,6 +64,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     infection_pattern = [0]*num_nodes;
     infection_pattern[source] = 1;
     who_infected = [[] for i in range(num_nodes)]
+    jordan_correct = [0 for i in range(max_time)]
     num_infected = 0
     
     blocked = False
@@ -75,6 +76,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         if timesteps == 0:
             current_neighbors = [k for k in adjacency[source]]
             virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
+            previous_vs = virtual_source
             
             # infect twice in one direction, always
             infection_pattern, who_infected = infect_nodes(source, virtual_source_candidate, infection_pattern, adjacency, who_infected)
@@ -102,11 +104,12 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             else:           # spread asymmetrically
                 
                 # find a direction to move
-                previous_vs_candidate = virtual_source_candidate
-                while previous_vs_candidate == virtual_source_candidate:
+                virtual_source_candidate = [previous_vs]
+                while virtual_source_candidate[0] == previous_vs:
                     virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
                 virtual_source_candidate = virtual_source_candidate[0]
                 visited_nodes = [virtual_source, virtual_source_candidate]
+                previous_vs = virtual_source
                 
                 # the virtual source moves one more hop away from the true source
                 m += 1;
@@ -119,9 +122,18 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             
             
         num_infected = sum(infection_pattern)
+        
+        # print('infected subgraph', who_infected,'timesteps',timesteps)
+        jordan_estimate = estimation.jordan_centrality(who_infected)
+        jordan_correct[timesteps] = (jordan_estimate == source)
+        if jordan_estimate == source:
+            print('num infected', num_infected)    
+            # print('source neighbors',who_infected[source])
+            
+        
         timesteps += 1
         
-    return num_infected, infection_pattern, who_infected
+    return num_infected, infection_pattern, who_infected, jordan_correct
     
 def compute_alpha(m,T,d):
     # Compute the probability of keeping the virtual source
