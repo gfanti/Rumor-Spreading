@@ -130,3 +130,16 @@ def find_center(root, up_count, up_count_2nd, up_id, up_id_2nd):
             idx_jordan = idx
             break
     return idx_jordan
+
+def ml_message_passing(messages, adjacency, who_infected, called_node, calling_node):
+    if len(who_infected[called_node]) != 1:
+        for i in who_infected[called_node]:
+            if i != calling_node:
+                messages[i][0] = messages[calling_node][0] + 1; 
+                messages[i][1] = messages[calling_node][1]*(1.0/(len(who_infected[called_node])-1))
+                messages = ml_message_passing(messages, who_infected, calling_node, i) 
+   else:
+        messages[i][0] = messages[calling_node][0] + 1; 
+        messages[i][1] = messages[calling_node][1]*(1.0/len(who_infected[called_node]))                 
+
+    return messages 
