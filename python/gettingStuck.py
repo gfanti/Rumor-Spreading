@@ -4,6 +4,7 @@ import random
 import scipy.io as io
 import numpy as np
 import estimation
+import exportGraph
 
 '''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
 def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
@@ -64,6 +65,11 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
             pd_rumor = [i+j/(1.0) for (i,j) in zip(pd_rumor, rumor_correct)]
             rumor_found = [i+j for (i,j) in zip(rumor_found,rumor_detected)]
             rumor_count = [i+j for (i,j) in zip(rumor_count,rumor_instances)]
+            
+            # write the infected subgraph to file
+            filename = 'infected_subgraph_'+str(trial)
+            exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
+            
         p += num_infected / (1.0 * num_true_nodes)
     p = p / trials
     # pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
@@ -76,7 +82,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
   
 if __name__ == "__main__":
 
-    trials = 20
+    trials = 10
     prefix = '..\\data\\'
 
         
@@ -85,7 +91,7 @@ if __name__ == "__main__":
     # facebook
     filename = prefix + 'out.facebook-wosn-links'
     min_degree = 3;
-    max_time = 10
+    max_time = 5
     max_infection = 3
     p_fb, num_infected, pd_jordan, pd_rumor = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)

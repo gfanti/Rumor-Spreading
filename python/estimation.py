@@ -130,3 +130,19 @@ def find_center(root, up_count, up_count_2nd, up_id, up_id_2nd):
             idx_jordan = idx
             break
     return idx_jordan
+    
+# ML Estimate
+def max_likelihood(who_infected, virtual_source, adjacency):
+    paths = get_paths(who_infected, virtual_source)
+    for i in range(len(who_infected)):
+        # this algorithm only works for leaves in the infected subgraph
+        if len(who_infected[i]) == 1:
+            likelihoods = compute_graph_likelihood(i, who_infected, adjacency, paths[i], likelihoods)
+    indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
+    ml_estimate = indices[random.choice(indices)]
+    return ml_estimate
+    
+def compute_graph_likelihood(source, who_infected, adjacency, vs_path, likelihoods):
+    likelihood = 1/len(adjacency[source])
+    vs_path.pop(0)
+    next_vs = vs_path[0]

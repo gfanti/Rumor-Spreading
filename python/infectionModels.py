@@ -132,37 +132,46 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
             
             
         num_infected = sum(infection_pattern)
-        
-        # print('infected subgraph', who_infected,'timesteps',timesteps)
-        jordan_estimate = estimation.jordan_centrality(who_infected)
-        jordan_correct[timesteps] = (jordan_estimate == source)
-        
-        # insert this result into the histogram
-        # print('bins',bins, max_nodes)
-        # print('num currently infected:', num_infected, 'timestep: ',timesteps+1)
-        # print('\n\nAdjacency: (virtual source = ',virtual_source,' true source = ',source,')')
-        # for index in range(len(who_infected)):
-            # if who_infected[index]:
-                # print(index,' : ',who_infected[index])
-        # print('Done with this round\n')
+
+        # Estimating the error
         bin_idx = next(x[0] for x in enumerate(bins) if x[1] > num_infected)
         instances[bin_idx] += 1
+
+        # Jordan-centrality estimate
+        jordan_estimate = estimation.jordan_centrality(who_infected)
+        jordan_correct[timesteps] = (jordan_estimate == source)
         jordan_detected[bin_idx] += (jordan_estimate == source)
         jordan_results = (bins,instances,jordan_detected, jordan_correct)
-                
+
+        # Rumor centrality estimate
         rumor_estimate = estimation.rumor_centrality(who_infected)
         rumor_correct[timesteps] = (rumor_estimate == source)
         rumor_detected[bin_idx] += (rumor_estimate == source)
         rumor_results = (bins,instances,rumor_detected, rumor_correct)
         
-        # if jordan_estimate == source:
-            # print('num infected', num_infected)    
-            # print('source neighbors',who_infected[source])
-            
+        # ML estimate
+        ml_estimate = estimation.max_likelihood(who_infected, virtual_source, adjacency)
+        degree_products, m = ml_message_passing(who_infected, virtual_source)
+        permutation_likelihoods = [compute_permutation_likelihood(T,perm) for perm in m]
+        likelihoods = np.array([p*q for (p,q) in zip(degree_products, permutation_likelihoods)])
+        indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
+        ml_estimate = indices[random.choice(indices)]
         
         timesteps += 1
         
     return num_infected, infection_pattern, who_infected, jordan_results, rumor_results, 
+    
+def compute_permutation_likelihood(T,m):
+    return prob_G_given_m_and_T(T,m)) / pow(d,m)
+    
+def prob_G_given_m_and_T(T,m):
+    if m < 1:
+        print('MAJOR ERROR, m cannot be less than 1')
+        return -1
+    prob = (1-compute_alpha(1,T,d))/pow(d,m)
+    for i in range(2,m+1):
+        prob = prob * compute_alpha(i,T,d)
+    return prob
     
 def compute_alpha(m,T,d):
     # Compute the probability of keeping the virtual source
