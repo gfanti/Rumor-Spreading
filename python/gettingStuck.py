@@ -33,6 +33,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     p = 0
     pd_jordan = [0 for i in range(max_time)]
     pd_rumor = [0 for i in range(max_time)]
+    pd_ml = [0 for i in range(max_time)]
     
     stepsize = 5;
     # max_infection+1 is the degree of the tree
@@ -44,8 +45,8 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     rumor_count = [0 for i in range(len(bins))]
     
     for trial in range(trials):
-        if trial % 20 == 0:
-            print('Trial ',trial, ' / ',trials)
+        # if trial % 20 == 0:
+        print('Trial ',trial, ' / ',trials)
         while True:
             source = random.randint(0,num_nodes-1)
             if len(adjacency[source]) > 0:
@@ -53,7 +54,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
         if max_infection == -1:      # i.e. we're running the deterministic version
             num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
         else:
-            num_infected, infection_pattern, who_infected, jordan_results, rumor_results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection,stepsize)
+            num_infected, infection_pattern, who_infected, jordan_results, rumor_results, ml_correct = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection,stepsize)
             # unpack the results
             jordan_bins, jordan_instances, jordan_detected, jordan_correct = jordan_results
             rumor_bins, rumor_instances, rumor_detected, rumor_correct = rumor_results
@@ -66,6 +67,8 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
             rumor_found = [i+j for (i,j) in zip(rumor_found,rumor_detected)]
             rumor_count = [i+j for (i,j) in zip(rumor_count,rumor_instances)]
             
+            pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
+            
             # write the infected subgraph to file
             filename = 'infected_subgraph_'+str(trial)
             exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
@@ -75,14 +78,15 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
     # pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
     pd_jordan = [i/j for (i,j) in zip(jordan_found, jordan_count) if j>0]
     pd_rumor = [i/j for (i,j) in zip(rumor_found, rumor_count) if j>0]
+    pd_ml = [i / trials for i in pd_ml]
     # pd_rumor = [i / (1.0 * trials) for i in pd_rumor]
     # pd_rumor = pd_rumor/(1.0*num_true_nodes)
-    return p, num_infected, pd_jordan, pd_rumor
+    return p, num_infected, pd_jordan, pd_rumor, pd_ml
     
   
 if __name__ == "__main__":
 
-    trials = 10
+    trials = 50
     prefix = '..\\data\\'
 
         
@@ -91,12 +95,14 @@ if __name__ == "__main__":
     # facebook
     filename = prefix + 'out.facebook-wosn-links'
     min_degree = 3;
-    max_time = 5
+    max_time = 10
     max_infection = 3
-    p_fb, num_infected, pd_jordan, pd_rumor = runDataset(filename, min_degree, trials, max_time, max_infection)
+    p_fb, num_infected, pd_jordan, pd_rumor, pd_ml = runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
     print('Accuracy using rumor centrality: ',pd_rumor)
+    print('Accuracy using ML: ',pd_ml)
+    
     io.savemat('pd',{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'time':np.array([i for i in range(max_time)])})
     exit()
     

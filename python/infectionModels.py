@@ -66,6 +66,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
     who_infected = [[] for i in range(num_nodes)]
     jordan_correct = [0 for i in range(max_time)]
     rumor_correct = [0 for i in range(max_time)]
+    ml_correct = [0 for i in range(max_time)]
     
     # compute the bins
     max_nodes = int(N_nodes(max_time, max_infection+1))
@@ -84,11 +85,11 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
         # in odd timesteps, choose a direction to expand in
         if timesteps == 0:
             current_neighbors = [k for k in adjacency[source]]
-            virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
+            virtual_source_candidate, current_neighbors, source_likelihood = pick_random_elements(current_neighbors,1)
             previous_vs = virtual_source
             
             # infect twice in one direction, always
-            infection_pattern, who_infected = infect_nodes(source, virtual_source_candidate, infection_pattern, adjacency, who_infected)
+            infection_pattern, who_infected = infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected)
             virtual_source_candidate = virtual_source_candidate[0]
             infection_pattern, who_infected = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
             virtual_source = virtual_source_candidate
@@ -111,11 +112,10 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
                     infection_pattern, who_infected = pass_branch_message(current_neighbors[0], virtual_source, infection_pattern, adjacency, max_infection, who_infected)
             
             else:           # spread asymmetrically
-                # print('go')
                 # find a direction to move
                 virtual_source_candidate = [previous_vs]
                 while virtual_source_candidate[0] == previous_vs:
-                    virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
+                    virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
                 virtual_source_candidate = virtual_source_candidate[0]
                 previous_vs = virtual_source
                 
@@ -150,19 +150,29 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
         rumor_results = (bins,instances,rumor_detected, rumor_correct)
         
         # ML estimate
-        ml_estimate = estimation.max_likelihood(who_infected, virtual_source, adjacency)
-        degree_products, m = ml_message_passing(who_infected, virtual_source)
-        permutation_likelihoods = [compute_permutation_likelihood(T,perm) for perm in m]
-        likelihoods = np.array([p*q for (p,q) in zip(degree_products, permutation_likelihoods)])
-        indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
-        ml_estimate = indices[random.choice(indices)]
+        ml_estimate, likelihoods = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, source)
+        ml_correct[timesteps] = (ml_estimate == source)
+        # print('\n\nML: ',ml_estimate, source, likelihoods[source], '\nTrue Leaf: ',len(who_infected[source])==1)
+        # for item in range(len(who_infected)):
+            # n = who_infected[item]
+            # if n:
+                # print('Node: ',item, ' Neighbors: ',n)
+                # for ne in n:
+                    # print('     Node: ',ne,'    # original neighbors: ',len(adjacency[ne]))
+        
+        # degree_products, m = ml_message_passing(who_infected, virtual_source)
+        # permutation_likelihoods = [compute_permutation_likelihood(T,perm) for perm in m]
+        # likelihoods = np.array([p*q for (p,q) in zip(degree_products, permutation_likelihoods)])
+        # indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
+        # ml_estimate = indices[random.choice(indices)]
+        
         
         timesteps += 1
         
-    return num_infected, infection_pattern, who_infected, jordan_results, rumor_results, 
+    return num_infected, infection_pattern, who_infected, jordan_results, rumor_results, ml_correct
     
 def compute_permutation_likelihood(T,m):
-    return prob_G_given_m_and_T(T,m)) / pow(d,m)
+    return prob_G_given_m_and_T(T,m) / pow(d,m)
     
 def prob_G_given_m_and_T(T,m):
     if m < 1:
@@ -274,7 +284,12 @@ def pick_random_elements(neighbors,num_neighbors):
         random_element = random.choice(neighbors)
         neighbors.remove(random_element)
         random_elements.append(random_element)
-    return random_elements, neighbors
+    if neighbors:
+        likelihood = num_neighbors / len(neighbors)
+    else:
+        likelihood = 1
+    random_elements.sort()
+    return random_elements, neighbors, likelihood
         
         
 def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
@@ -317,6 +332,7 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
     
     # pass to the neighbors who are your neighbors in the true infection graph
     neighbors = [k for k in who_infected[recipient] if (not k == source)]
+    neighbors.sort() # this should be commented for a randomized distribution!
     
     for neighbor in neighbors:
         leaf = False
@@ -326,16 +342,16 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
         # print('leaf')
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
-            neighbors, remains = pick_random_elements(neighbors,max_infection)
-        infection_pattern,who_infected = infect_nodes(recipient, neighbors, infection_pattern, adjacency, who_infected)
+            neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)
+        infection_pattern,who_infected = infect_nodes(recipient, neighbors, infection_pattern, who_infected)
     return infection_pattern, who_infected
-        
+    
 def infect_nodes_infinite_tree(node, num_children, adjacency):
     adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
     adjacency = adjacency + [[node] for i in range(num_children)]
     return adjacency
     
-def infect_nodes(node, children, infection_pattern, adjacency, who_infected):
+def infect_nodes(node, children, infection_pattern, who_infected):
     # infect_nodes infects the nodes listed in children from 'node'
     # Inputs
     #       node:               source of the infection
