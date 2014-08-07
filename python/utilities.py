@@ -115,6 +115,7 @@ def run_randtree(trials, max_time, max_infection, degree_rv):
     # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
     
     pd_ml = [0 for i in range(max_time)]
+    avg_num_infected = [0 for i in range(max_time)]
     
     for trial in range(trials):
         if trial % 10 == 0:
@@ -124,6 +125,9 @@ def run_randtree(trials, max_time, max_infection, degree_rv):
         # unpack the results
         
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
+        avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
         
     pd_ml = [i / trials for i in pd_ml]
-    return num_infected, pd_ml
+    print('pd ml is ',pd_ml)
+    avg_num_infected = [ i / trials for i in avg_num_infected]
+    return avg_num_infected, pd_ml

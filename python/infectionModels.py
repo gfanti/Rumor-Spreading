@@ -64,6 +64,7 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
 
     # ML estimate
     ml_correct = [0 for i in range(max_time)]
+    tot_num_infected = [0 for i in range(max_time)]
     num_infected = 0
     
     who_infected = [[]]
@@ -112,11 +113,13 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
         # ML estimate
         ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
         ml_correct[timesteps] = (ml_estimate == source)
+        tot_num_infected[timesteps] = num_infected
         
+        # print('who_infected',who_infected)
         
         timesteps += 1
         
-    return num_infected, infection_pattern, who_infected, ml_correct
+    return tot_num_infected, infection_pattern, who_infected, ml_correct
     
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
     num_nodes = len(adjacency)
