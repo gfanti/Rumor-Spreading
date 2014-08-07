@@ -1,6 +1,8 @@
 # node infection
 import estimation
 import random
+from scipy import stats
+import numpy as np
 
 def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alpha, beta):
     num_nodes = len(adjacency)
@@ -39,7 +41,7 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
             
         # in even timesteps, choose whether to move the virtual source
         else:
-            if random.random() < alpha:
+            if random.random() < compute_alpha(m,timesteps,max_infection):
                 # print('passing from ',virtual_source, ' to ', virtual_source_candidate)
                 adjacency = pass_branch_message_infinite_tree(virtual_source, virtual_source_candidate, adjacency, max_degree)
                 virtual_source = virtual_source_candidate
@@ -52,6 +54,69 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
         timesteps += 1
         
     return adjacency, num_infected
+    
+    
+def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, degrees_rv):
+    timesteps = 0
+    
+    # initially the virtual source and the true source are the same
+    virtual_source = source
+
+    # ML estimate
+    ml_correct = [0 for i in range(max_time)]
+    num_infected = 0
+    
+    who_infected = [[]]
+    degrees = degrees_rv.rvs(size=1).tolist()
+    
+    while timesteps < max_time:
+    
+            
+        if timesteps == 0:
+            virtual_source = 1
+            previous_vs = 0
+            
+            # infect twice in one direction, always
+            degrees, who_infected = infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)
+            infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)
+            m = 1       # the virtual source is always going to be 1 hop away from the true source
+            
+        else:
+            current_neighbors = [k for k in who_infected[virtual_source]]
+
+            if random.random() < compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+                # branch once in every direction
+                for neighbor in current_neighbors:
+                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)
+            
+            else:           # spread asymmetrically
+                # find a direction to move
+                virtual_source_candidate = [previous_vs]
+                while virtual_source_candidate[0] == previous_vs:
+                    virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
+                virtual_source_candidate = virtual_source_candidate[0]
+                previous_vs = virtual_source
+                
+                # the virtual source moves one more hop away from the true source
+                m += 1;
+                
+                # branch twice in one direction
+                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)
+                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)
+                
+                virtual_source = virtual_source_candidate
+            
+        num_infected = len(who_infected)
+
+        # Estimating the error
+        # ML estimate
+        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
+        ml_correct[timesteps] = (ml_estimate == source)
+        
+        
+        timesteps += 1
+        
+    return num_infected, infection_pattern, who_infected, ml_correct
     
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
     num_nodes = len(adjacency)
@@ -108,8 +173,12 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
                 # branch once in every direction
                 for neighbor in current_neighbors:
                     infection_pattern, who_infected = pass_branch_message(virtual_source, neighbor, infection_pattern, adjacency, max_infection, who_infected)
+                # take care of getting stuck
                 if len(current_neighbors) == 1:
-                    infection_pattern, who_infected = pass_branch_message(current_neighbors[0], virtual_source, infection_pattern, adjacency, max_infection, who_infected)
+                    infection_pattern, who_infected = pass_branch_message(virtual_source, current_neighbors[0], infection_pattern, adjacency, max_infection, who_infected)
+                    previous_vs = virtual_source
+                    virtual_source = current_neighbors[0]
+                    m -= 1
             
             else:           # spread asymmetrically
                 # find a direction to move
@@ -127,9 +196,6 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 
                 virtual_source = virtual_source_candidate
-                
-                
-            
             
         num_infected = sum(infection_pattern)
 
@@ -152,24 +218,12 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
         # ML estimate
         ml_estimate, likelihoods = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, source)
         ml_correct[timesteps] = (ml_estimate == source)
-        # print('\n\nML: ',ml_estimate, source, likelihoods[source], '\nTrue Leaf: ',len(who_infected[source])==1)
-        # for item in range(len(who_infected)):
-            # n = who_infected[item]
-            # if n:
-                # print('Node: ',item, ' Neighbors: ',n)
-                # for ne in n:
-                    # print('     Node: ',ne,'    # original neighbors: ',len(adjacency[ne]))
         
-        # degree_products, m = ml_message_passing(who_infected, virtual_source)
-        # permutation_likelihoods = [compute_permutation_likelihood(T,perm) for perm in m]
-        # likelihoods = np.array([p*q for (p,q) in zip(degree_products, permutation_likelihoods)])
-        # indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
-        # ml_estimate = indices[random.choice(indices)]
-        
+        results = (jordan_results, rumor_results, ml_correct)
         
         timesteps += 1
         
-    return num_infected, infection_pattern, who_infected, jordan_results, rumor_results, ml_correct
+    return num_infected, infection_pattern, who_infected, results
     
 def compute_permutation_likelihood(T,m):
     return prob_G_given_m_and_T(T,m) / pow(d,m)
@@ -313,6 +367,35 @@ def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
     if leaf:
         adjacency = infect_nodes_infinite_tree(recipient, max_degree-1, adjacency)
     return adjacency
+
+def pass_branch_message_randtree(source, recipient, degrees, degrees_rv, who_infected):
+    # pass an instruction to branch from the source to the leaves
+    # Inputs
+    #       source:             source of the infection
+    #       recipient:          array of child ids
+    #       degrees:            the degree of each node in the underlying irregular tree
+    #       degrees_rv:          a random variable describing the degree distribution
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       degrees             (updated)
+    #       who_infected        (updated)
+    
+    leaf = True
+    
+    # pass to the neighbors who are your neighbors in the true infection graph
+    neighbors = [k for k in who_infected[recipient] if (not k == source)]
+    neighbors.sort() # this should be commented for a randomized distribution!
+    
+    for neighbor in neighbors:
+        leaf = False
+        degrees, who_infected =  pass_branch_message_randtree(recipient, neighbor, degrees, degrees_rv, who_infected)
+            
+    if leaf:
+        to_infect = degrees[recipient] - 1
+        neighbors = ([k+len(degrees) for k in range(to_infect)])
+        degrees,who_infected = infect_nodes_randtree(recipient, neighbors, degrees, degrees_rv, who_infected)
+    return degrees, who_infected
     
 def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected):
     # pass an instruction to branch from the source to the leaves
@@ -369,3 +452,22 @@ def infect_nodes(node, children, infection_pattern, who_infected):
         infection_pattern[child] = 1
         who_infected[child] += [node]
     return infection_pattern, who_infected
+    
+def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected):
+    # infect_nodes infects the nodes listed in children from 'node'
+    # Inputs
+    #       node:               source of the infection
+    #       children:           array of child ids
+    #       infection_pattern:  binary array describing whether each node is already infected or not
+    #       adjacency:          adjacency relations for the underlying network
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       infection_pattern   (updated)
+    #       who_infected        (updated)
+
+    who_infected[node] += children
+    for child in children:
+        who_infected.append([node])
+    degrees += degrees_rv.rvs(size=len(children)).tolist()
+    return degrees, who_infected

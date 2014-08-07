@@ -4,6 +4,7 @@ import utilities
 import math
 import infectionModels
 
+
 def rumor_centrality_up(up_messages, who_infected, calling_node, called_node):
     if called_node == calling_node:
         for i in who_infected[called_node]:
@@ -30,7 +31,7 @@ def rumor_centrality_down(down_messages, up_messages, who_infected, calling_node
 
 
 def rumor_centrality(who_infected):
-
+    # computes the estimate of the source based on rumor centrality
     initial_node = 0       # can use arbitrary initial index
     up_messages = [1]*len(who_infected) 
     down_messages = [1]*len(who_infected)
@@ -304,3 +305,39 @@ def get_paths(paths, who_infected, adjacency, called_node, calling_node):
         # messages[i][1] = messages[calling_node][1]*(1.0/len(who_infected[called_node]))                 
 
     # return messages 
+
+# ML over irregular infinite trees
+def ml_message_passing_irregular_trees(d, depth, messages, infected_nodes_degree, who_infected, called_node, calling_node): 
+
+    if called_node == calling_node:
+        for i in who_infected[called_node]:
+            messages[i] = messages[calling_node]*(1.0/(infected_nodes_degree[i]))
+            messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
+
+    elif len(who_infected[called_node]) != 1:
+        for i in who_infected[called_node]:
+             if i != calling_node:
+                messages[i] = messages[called_node]*(pow(d-1,depth))*((1.0*infected_nodes_degree[called_node])/(infected_nodes_degree[called_node]-1))*(1.0/(infected_nodes_degree[i]))
+                messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
+    return messages 
+    
+
+def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who_infected):        
+
+    # compute the probability of not passing the virtual source token
+    p = 1;
+    for i in range(1,T):
+        p = p*infectionModels.compute_alpha(i,i,d)
+    # initializing the messages vector to contain the probability of not passing the virtual source token
+    messages = [p]*len(who_infected)
+    # computing the likelihood of all the nodes via a message passing algorithm
+    messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
+    # the likelihood of the virtual source is equal to zero
+    messages[virtual_source] = 0
+    # finding the likelihood of the ML estimate
+    max_message = max(messages)
+    # finding the indices of most likely nodes
+    max_message_ind = [i for i, j in enumerate(messages) if j == max_message]
+    # ml_estimate = max_message_ind[random.randrange(0,len(max_message_ind),1)]
+    ml_estimate = random.choice(max_message_ind)
+    return ml_estimate
