@@ -229,13 +229,13 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
     return num_infected, infection_pattern, who_infected, results
     
 def compute_permutation_likelihood(T,m):
-    return prob_G_given_m_and_T(T,m) / pow(d,m)
+    return float(prob_G_given_m_and_T(T,m)) / pow(d,m)
     
 def prob_G_given_m_and_T(T,m):
     if m < 1:
         print('MAJOR ERROR, m cannot be less than 1')
         return -1
-    prob = (1-compute_alpha(1,T,d))/pow(d,m)
+    prob = float(1-compute_alpha(1,T,d))/pow(d,m)
     for i in range(2,m+1):
         prob = prob * compute_alpha(i,T,d)
     return prob
@@ -250,15 +250,15 @@ def compute_alpha(m,T,d):
     # Outputs
     #       alpha:      the probability of keeping the virtual source where it is
     
-    alpha1 = N(T,d) / (N(T+1,d))
+    alpha1 = float(N(T,d)) / (N(T+1,d))
     if m == 1:
         return alpha1
     else:
         # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
         if d > 2:
-            alpha = ((1-alpha1)/(d-2))/pow(d-1,m-1) + (alpha1*(d-1)-1)/(d-2)
+            alpha = (float(1-alpha1)/(d-2))/pow(d-1,m-1) + float(alpha1*(d-1)-1)/(d-2)
         else:
-            alpha = (T-m) / T
+            alpha = float(T-m) / T
     return alpha
 
 def N(T,d):
@@ -271,7 +271,7 @@ def N(T,d):
     #       n           the number of nodes at time T
     
     if d > 2:
-        n = d / (d-2) * (pow(d-1,T)-1)
+        n = float(d) / (d-2) * (pow(d-1,T)-1)
     else:
         n = 1 + 2*T
     return n
@@ -342,7 +342,7 @@ def pick_random_elements(neighbors,num_neighbors):
         neighbors.remove(random_element)
         random_elements.append(random_element)
     if neighbors:
-        likelihood = num_neighbors / len(neighbors)
+        likelihood = float(num_neighbors) / len(neighbors)
     else:
         likelihood = 1
     random_elements.sort()

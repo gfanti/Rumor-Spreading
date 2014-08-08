@@ -6,15 +6,22 @@ import utilities
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 1000
+    trials = 10
     max_time = 8
     max_infection = 3
+    
+    # Irregular infinite graph
     xk = np.arange(3,5)
     pk = (0.5,0.5)
-    
-    # want to find the best max_infection (i.e., d-1) to minimize pd
     dd = 0.1
     ds = np.arange(1.6,3.6,dd)
+    
+    # Regular infinite graph
+    # xk = np.arange(3,4)
+    # pk = (1)
+    # ds = np.array([2])
+    
+    # want to find the best max_infection (i.e., d-1) to minimize pd
     
     num_infected_all = []
     pd_ml_all = []

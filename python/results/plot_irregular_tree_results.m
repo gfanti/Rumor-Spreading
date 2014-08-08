@@ -11,7 +11,15 @@ integrated = []
 for i = 1:num_d
     integrated = [integrated; cumtrapz(num_infected(i,:),pd_ml(i,:))];
 end
-
 plot(d_values+1,integrated(:,end))
 xlabel('Assumed Degree d_o')
 ylabel('Approximate Integral of Pd over N')
+
+
+figure(3)
+[m,I] = min(pd_ml);
+plot(1:8,d_values(I)+1)
+xlabel('Timestep (T)')
+ylabel('Optimal d_o')
+
+

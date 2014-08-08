@@ -75,10 +75,10 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
             jordan_bins, jordan_instances, jordan_detected, jordan_correct = jordan_results
             rumor_bins, rumor_instances, rumor_detected, rumor_correct = rumor_results
             
-            pd_jordan = [i+j/(1.0) for (i,j) in zip(pd_jordan, jordan_correct)]
+            pd_jordan = [i+j for (i,j) in zip(pd_jordan, jordan_correct)]
             jordan_found = [i+j for (i,j) in zip(jordan_found,jordan_detected)]
             jordan_count = [i+j for (i,j) in zip(jordan_count,jordan_instances)]
-            pd_rumor = [i+j/(1.0) for (i,j) in zip(pd_rumor, rumor_correct)]
+            pd_rumor = [i+j for (i,j) in zip(pd_rumor, rumor_correct)]
             rumor_found = [i+j for (i,j) in zip(rumor_found,rumor_detected)]
             rumor_count = [i+j for (i,j) in zip(rumor_count,rumor_instances)]
             
@@ -88,14 +88,11 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
             filename = 'infected_subgraph_'+str(trial)
             exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
             
-        p += num_infected / (1.0 * num_true_nodes)
+        p += float(num_infected) / num_true_nodes
     p = p / trials
-    # pd_jordan = [i / (1.0 * trials) for i in pd_jordan]
-    pd_jordan = [i/j for (i,j) in zip(jordan_found, jordan_count) if j>0]
-    pd_rumor = [i/j for (i,j) in zip(rumor_found, rumor_count) if j>0]
-    pd_ml = [i / trials for i in pd_ml]
-    # pd_rumor = [i / (1.0 * trials) for i in pd_rumor]
-    # pd_rumor = pd_rumor/(1.0*num_true_nodes)
+    pd_jordan = [float(i)/j for (i,j) in zip(jordan_found, jordan_count) if j>0]
+    pd_rumor = [float(i)/j for (i,j) in zip(rumor_found, rumor_count) if j>0]
+    pd_ml = [float(i) / trials for i in pd_ml]
     return p, num_infected, pd_jordan, pd_rumor, pd_ml
     
 '''Run a random tree'''    
@@ -127,7 +124,9 @@ def run_randtree(trials, max_time, max_infection, degree_rv):
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
         avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
         
-    pd_ml = [i / trials for i in pd_ml]
+    pd_ml = [float(i) / trials for i in pd_ml]
     print('pd ml is ',pd_ml)
-    avg_num_infected = [ i / trials for i in avg_num_infected]
+    # print('avg num infected  before', avg_num_infected, trials)
+    avg_num_infected = [ float(i) / trials for i in avg_num_infected]
+    # print('avg num infected', avg_num_infected)
     return avg_num_infected, pd_ml

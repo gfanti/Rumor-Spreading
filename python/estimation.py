@@ -186,7 +186,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     # first element is just the source itself
     current_vs = vs_path.pop(0)    
     # log likelihood of the 1st node
-    likelihood = math.log(1/len(adjacency[source]))
+    likelihood = math.log(1.0/len(adjacency[source]))
     
     # get the new vs
     if not vs_path:
@@ -317,7 +317,7 @@ def ml_message_passing_irregular_trees(d, depth, messages, infected_nodes_degree
     elif len(who_infected[called_node]) != 1:
         for i in who_infected[called_node]:
              if i != calling_node:
-                messages[i] = messages[called_node]*(pow(d-1,depth))*((1.0*infected_nodes_degree[called_node])/(infected_nodes_degree[called_node]-1))*(1.0/(infected_nodes_degree[i]))
+                messages[i] = messages[called_node]*(pow(d-1,depth))*(float(infected_nodes_degree[called_node])/(infected_nodes_degree[called_node]-1))*(1.0/(infected_nodes_degree[i]))
                 messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
     return messages 
     
