@@ -6,15 +6,15 @@ import utilities
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 10
-    max_time = 8
+    trials = 6000
+    max_time = 9
     max_infection = 3
     
     # Irregular infinite graph
     xk = np.arange(3,5)
     pk = (0.5,0.5)
-    dd = 0.1
-    ds = np.arange(1.6,3.6,dd)
+    dd = 0.05
+    ds = np.arange(1.0,4.05,dd)
     
     # Regular infinite graph
     # xk = np.arange(3,4)
@@ -34,6 +34,6 @@ if __name__ == "__main__":
         num_infected_all.append(num_infected)
         pd_ml_all.append(pd_ml)
     # print('Max likelihood Pd: ',pd_ml_all)
-    print('\nMean number of nodes: ',num_infected_all)
+    #print('\nMean number of nodes: ',num_infected_all)
     
     io.savemat('results/irregular_tree_results',{'pd_ml':np.array(pd_ml_all), 'num_infected':np.array(num_infected_all), 'd_values':ds})

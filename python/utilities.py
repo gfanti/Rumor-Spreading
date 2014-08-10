@@ -125,7 +125,7 @@ def run_randtree(trials, max_time, max_infection, degree_rv):
         avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
         
     pd_ml = [float(i) / trials for i in pd_ml]
-    print('pd ml is ',pd_ml)
+    # print('pd ml is ',pd_ml)
     # print('avg num infected  before', avg_num_infected, trials)
     avg_num_infected = [ float(i) / trials for i in avg_num_infected]
     # print('avg num infected', avg_num_infected)
