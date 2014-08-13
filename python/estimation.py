@@ -2,7 +2,6 @@ import numpy as np
 import random 
 import utilities
 import math
-import infectionModels
 
 
 def rumor_centrality_up(up_messages, who_infected, calling_node, called_node):
@@ -192,13 +191,13 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     if not vs_path:
         return likelihood
     current_vs = vs_path.pop(0)
-    new_infection_pattern, new_who_infected = infectionModels.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
+    new_infection_pattern, new_who_infected = utilities.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
     
     # infect the neighbors of the new vs
     infected = [i for i in who_infected[current_vs]]
     infected.remove(source)
     
-    new_infection_pattern, new_who_infected = infectionModels.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
+    new_infection_pattern, new_who_infected = utilities.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
     likelihood += infect_set_likelihood(infected, adjacency[current_vs], new_infection_pattern, max_infection)
     m = 1 # depth of tree
     
@@ -239,7 +238,7 @@ def pass_branch_message_likelihood(source, recipient, new_infection_pattern, adj
     if leaf:
         neighbors = [k for k in who_infected[recipient] if not k==source]
         likelihood += infect_set_likelihood(neighbors, adjacency[recipient], new_infection_pattern, max_infection)
-        new_infection_pattern, new_who_infected = infectionModels.infect_nodes(recipient, neighbors, new_infection_pattern, new_who_infected)
+        new_infection_pattern, new_who_infected = utilities.infect_nodes(recipient, neighbors, new_infection_pattern, new_who_infected)
         
     return new_infection_pattern, new_who_infected, likelihood
     
@@ -321,13 +320,19 @@ def ml_message_passing_irregular_trees(d, depth, messages, infected_nodes_degree
                 messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
     return messages 
     
-
+    
 def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who_infected):        
 
+    # print('ml estimate who infected', who_infected)
+    # print('degrees',infected_nodes_degree)
+    # print('d',d)
+    # print('T',T)
+    # print('virtual source',virtual_source)
+    
     # compute the probability of not passing the virtual source token
     p = 1;
     for i in range(1,T):
-        p = p*infectionModels.compute_alpha(i,i,d)
+        p = p*utilities.compute_alpha(i,i,d)
     # initializing the messages vector to contain the probability of not passing the virtual source token
     messages = [p]*len(who_infected)
     # computing the likelihood of all the nodes via a message passing algorithm
@@ -339,5 +344,6 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
     # finding the indices of most likely nodes
     max_message_ind = [i for i, j in enumerate(messages) if j == max_message]
     # ml_estimate = max_message_ind[random.randrange(0,len(max_message_ind),1)]
+    # print('choices', max_message_ind)
     ml_estimate = random.choice(max_message_ind)
     return ml_estimate

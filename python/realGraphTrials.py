@@ -18,7 +18,7 @@ if __name__ == "__main__":
     min_degree = 3;
     max_time = 10
     max_infection = 3
-    p_fb, num_infected, pd_jordan, pd_rumor, pd_ml = utilities.runDataset(filename, min_degree, trials, max_time, max_infection)
+    p_fb, num_infected, pd_jordan, pd_rumor, pd_ml = runExperiments.runDataset(filename, min_degree, trials, max_time, max_infection)
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
     print('Accuracy using rumor centrality: ',pd_rumor)

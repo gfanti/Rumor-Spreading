@@ -1,9 +1,7 @@
 # utilities
-import buildGraph
-import infectionModels
 import random
 from scipy import stats
-import exportGraph
+
 
 def nCk(n, k):
     """
@@ -20,113 +18,95 @@ def nCk(n, k):
     else:
         return 0
         
-        
-'''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
-def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1):
-    # Run dataset runs a spreading algorithm over a dataset. 
-    # Inputs:
+def compute_alpha(m,T,d):
+    # Compute the probability of keeping the virtual source
+    # Inputs
+    #       m:          distance from the virtual source to the true source, in hops
+    #       T:          time
+    #       d:          degree of the d-regular tree
     #
-    #       filename:               name of the file containing the data
-    #       min_degree:             remove all nodes with degree lower than min_degree
-    #       trials:                 number of trials to run
-    #       max_time(opt):          the maximum number of timesteps to use
-    #       max_infection(opt):     the maximum number of nodes a node can infect in any given timestep
-    #
-    # Outputs:
-    #
-    #       p:                      average proportion of nodes reached by the algorithm 
-    #       num_infected:           total number of nodes infected by the algorithm
-    #
-    # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
+    # Outputs
+    #       alpha:      the probability of keeping the virtual source where it is
     
-    adjacency = buildGraph.buildDatasetGraph(filename, min_degree)
-    # print(adjacency)
-    num_nodes = len(adjacency)
-    num_true_nodes = sum([len(item)>0 for item in adjacency])
-    print('nonzero nodes:',num_true_nodes)
-    num_infected = 0
-    p = 0
-    pd_jordan = [0 for i in range(max_time)]
-    pd_rumor = [0 for i in range(max_time)]
-    pd_ml = [0 for i in range(max_time)]
-    
-    stepsize = 5;
-    # max_infection+1 is the degree of the tree
-    max_nodes = int(infectionModels.N_nodes(max_time,max_infection+1))
-    bins = [i for i in range(1,max_nodes+stepsize+1,stepsize)]
-    jordan_found = [0 for i in range(len(bins))]
-    jordan_count = [0 for i in range(len(bins))]
-    rumor_found = [0 for i in range(len(bins))]
-    rumor_count = [0 for i in range(len(bins))]
-    
-    for trial in range(trials):
-        # if trial % 20 == 0:
-        print('Trial ',trial, ' / ',trials)
-        while True:
-            source = random.randint(0,num_nodes-1)
-            if len(adjacency[source]) > 0:
-                break
-        if max_infection == -1:      # i.e. we're running the deterministic version
-            num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
+    alpha1 = float(N(T,d)) / (N(T+1,d))
+    if m == 1:
+        return alpha1
+    else:
+        # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
+        if d > 2:
+            alpha = (float(1-alpha1)/(d-2))/pow(d-1,m-1) + float(alpha1*(d-1)-1)/(d-2)
         else:
-            num_infected, infection_pattern, who_infected, results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection,stepsize)
-            # unpack the results
-            jordan_results, rumor_results, ml_correct = results
-            jordan_bins, jordan_instances, jordan_detected, jordan_correct = jordan_results
-            rumor_bins, rumor_instances, rumor_detected, rumor_correct = rumor_results
-            
-            pd_jordan = [i+j for (i,j) in zip(pd_jordan, jordan_correct)]
-            jordan_found = [i+j for (i,j) in zip(jordan_found,jordan_detected)]
-            jordan_count = [i+j for (i,j) in zip(jordan_count,jordan_instances)]
-            pd_rumor = [i+j for (i,j) in zip(pd_rumor, rumor_correct)]
-            rumor_found = [i+j for (i,j) in zip(rumor_found,rumor_detected)]
-            rumor_count = [i+j for (i,j) in zip(rumor_count,rumor_instances)]
-            
-            pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
-            
-            # write the infected subgraph to file
-            filename = 'infected_subgraph_'+str(trial)
-            exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
-            
-        p += float(num_infected) / num_true_nodes
-    p = p / trials
-    pd_jordan = [float(i)/j for (i,j) in zip(jordan_found, jordan_count) if j>0]
-    pd_rumor = [float(i)/j for (i,j) in zip(rumor_found, rumor_count) if j>0]
-    pd_ml = [float(i) / trials for i in pd_ml]
-    return p, num_infected, pd_jordan, pd_rumor, pd_ml
+            alpha = float(T-m) / T
+    return alpha
+
+def N(T,d):
+    # Compute the number of graphs that can appear at time T in a d-regular graph
+    # Inputs
+    #       T:          time
+    #       d:          degree of the d-regular tree
+    #
+    # Outputs
+    #       n           the number of nodes at time T
     
-'''Run a random tree'''    
-def run_randtree(trials, max_time, max_infection, degree_rv):
-    # Run dataset runs a spreading algorithm over a dataset. 
-    # Inputs:
-    #
-    #       trials:                 number of trials to run
-    #       max_time:               the maximum number of timesteps to use
-    #       degree_rv:              remove all nodes with degree lower than min_degree
-    #
-    # Outputs:
-    #
-    #       p:                      average proportion of nodes reached by the algorithm 
-    #       num_infected:           total number of nodes infected by the algorithm
-    #
-    # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
+    if d > 2:
+        n = float(d) / (d-2) * (pow(d-1,T)-1)
+    else:
+        n = 1 + 2*T
+    return n
     
-    pd_ml = [0 for i in range(max_time)]
-    avg_num_infected = [0 for i in range(max_time)]
+def N_nodes(T,d):
+    # Compute the number of nodes that appear in a graph at time T in a d-regular graph
+    return N(T,d) + 1
     
-    for trial in range(trials):
-        if trial % 10 == 0:
-            print('Trial ',trial, ' / ',trials-1)
-        source = 0
-        num_infected, infection_pattern, who_infected, ml_correct = infectionModels.infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, degree_rv)
-        # unpack the results
+def infect_nodes_infinite_tree(node, num_children, adjacency):
+    adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
+    adjacency = adjacency + [[node] for i in range(num_children)]
+    return adjacency
+    
+def infect_nodes(node, children, infection_pattern, who_infected):
+    # infect_nodes infects the nodes listed in children from 'node'
+    # Inputs
+    #       node:               source of the infection
+    #       children:           array of child ids
+    #       infection_pattern:  binary array describing whether each node is already infected or not
+    #       adjacency:          adjacency relations for the underlying network
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       infection_pattern   (updated)
+    #       who_infected        (updated)
+
+    who_infected[node] += children
+    for child in children:
+        infection_pattern[child] = 1
+        who_infected[child] += [node]
+    return infection_pattern, who_infected
+    
+def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
+    # infect_nodes infects the nodes listed in children from 'node'
+    # Inputs
+    #       node:               source of the infection
+    #       children:           array of child ids
+    #       infection_pattern:  binary array describing whether each node is already infected or not
+    #       adjacency:          adjacency relations for the underlying network
+    #       who_infected:       adjacency relations for the infected subgraph
+    #
+    # Outputs
+    #       infection_pattern   (updated)
+    #       who_infected        (updated)
+
+    who_infected[node] += children
+    for child in children:
+        who_infected.append([node])
+    if not known_degrees:
+        degrees += degrees_rv.rvs(size=len(children)).tolist()
+    elif len(known_degrees) >= len(children):
+        degrees += known_degrees[0:len(children)]
+        known_degrees[0:len(children)] = []
+    else:
+        slack = len(children) - len(known_degrees)
+        degrees += known_degrees
+        known_degrees = []
+        degrees += degrees_rv.rvs(size=slack).tolist()
         
-        pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
-        avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
-        
-    pd_ml = [float(i) / trials for i in pd_ml]
-    # print('pd ml is ',pd_ml)
-    # print('avg num infected  before', avg_num_infected, trials)
-    avg_num_infected = [ float(i) / trials for i in avg_num_infected]
-    # print('avg num infected', avg_num_infected)
-    return avg_num_infected, pd_ml
+    return degrees, who_infected, known_degrees
