@@ -355,5 +355,8 @@ def rand_leaf_estimate(who_infected, degrees, T):
     if (len(candidates) != 7) and ( T > 0):
         print('who infected',who_infected)
         print('degrees', degrees)
+    if len(who_infected[0])>1:
+        print('0 is not a leaf!',who_infected)  
+
     rand_leaf_estimate = random.choice(candidates)
     return rand_leaf_estimate

@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     trials = 1000
     max_time = 2
-    max_infection = 10000
+    max_infection = 10000000
     
     # Irregular infinite graph
     xk = np.arange(3,5)
