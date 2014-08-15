@@ -94,6 +94,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, known_degrees=[]):
     # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
     
     pd_ml = [0 for i in range(max_time)]
+    pd_rand_leaf = [0 for i in range(max_time)]
     avg_num_infected = [0 for i in range(max_time)]
     
     for trial in range(trials):
@@ -103,15 +104,17 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, known_degrees=[]):
         if not known_degrees:
             num_infected, infection_pattern, who_infected, ml_correct = infectionModels.infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, degrees_rv)
         else:
-            num_infected, infection_pattern, who_infected, ml_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
+            num_infected, infection_pattern, who_infected, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
         # unpack the results
             
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
+        pd_rand_leaf = [i+j for (i,j) in zip(pd_rand_leaf, rand_leaf_correct)]
         avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
         
     pd_ml = [float(i) / trials for i in pd_ml]
+    pd_rand_leaf = [float(i) / trials for i in pd_rand_leaf]
     # print('pd ml is ',pd_ml)
     # print('avg num infected  before', avg_num_infected, trials)
     avg_num_infected = [ float(i) / trials for i in avg_num_infected]
     # print('avg num infected', avg_num_infected)
-    return avg_num_infected, pd_ml
+    return avg_num_infected, pd_ml, pd_rand_leaf
