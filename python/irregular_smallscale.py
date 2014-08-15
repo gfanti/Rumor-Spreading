@@ -7,7 +7,7 @@ import runExperiments
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 5
+    trials = 1000
     max_time = 2
     max_infection = 99
     

@@ -348,11 +348,11 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
     ml_estimate = random.choice(max_message_ind)
     return ml_estimate
 
-def rand_leaf_estimate(who_infected, degrees):
+def rand_leaf_estimate(who_infected, degrees, T):
     n = len(who_infected)
     candidates = [i for i in range(n) if len(who_infected[i])==1]
     # print('num candidates',len(candidates))
-    if len(candidates) != 7:
+    if (len(candidates) != 7) and ( T > 0):
         print('who infected',who_infected)
         print('degrees', degrees)
     rand_leaf_estimate = random.choice(candidates)
