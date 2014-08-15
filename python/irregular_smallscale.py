@@ -7,7 +7,7 @@ import runExperiments
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 100
+    trials = 1000000
     max_time = 2
     max_infection = 99
     
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         num_infected_all.append(num_infected)
         pd_ml_all.append(pd_ml)
         
-        pd_ml_progression.append(total_pd_ml / float(trials))
+        pd_ml_progression.append(total_pd_ml / float(t))
     
     total_pd_ml /= float(trials)
     print('Overall pd_ml is ',total_pd_ml)
