@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     trials = 1000
     max_time = 2
-    max_infection = 99
+    max_infection = 10000
     
     # Irregular infinite graph
     xk = np.arange(3,5)
@@ -57,7 +57,9 @@ if __name__ == "__main__":
         remaining = sum(degrees[-2:]) - 2
         degrees += degrees_rv.rvs(size=remaining).tolist()  # [x,x,x,x]
         
-        # print('num initial degrees specified',len(degrees))
+        if len(degrees) > 11:
+            print('num initial degrees specified',len(degrees))
+            print('degrees',degrees,'\n\n')
         num_infected, pd_ml, pd_rand_leaf = runExperiments.run_randtree(1, max_time, max_infection, degrees_rv, degrees)
         total_pd_ml += pd_ml[-1]
         total_pd_rand_leaf += pd_rand_leaf[-1]
