@@ -7,7 +7,7 @@ import runExperiments
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 100
+    trials = 5
     max_time = 2
     max_infection = 99
     
@@ -43,7 +43,10 @@ if __name__ == "__main__":
         # T = 0.5
         degrees += degrees_rv.rvs(size=1).tolist()  # [x]
         # T = 1
-        degrees += [3] + degrees_rv.rvs(size=2).tolist()  # [3,x,x]
+        if degrees[1] == 4:
+            degrees += [3] + degrees_rv.rvs(size=2).tolist()  # [3,x,x]
+        else:
+            degrees += [3] + degrees_rv.rvs(size=1).tolist()  # [3,x,x]
         # T = 1.5
         if degrees[1] == 4:
             degrees += [3,3]  # depends on T = 0.5, should sum to 10
@@ -54,6 +57,7 @@ if __name__ == "__main__":
         remaining = sum(degrees[-2:]) - 2
         degrees += degrees_rv.rvs(size=remaining).tolist()  # [x,x,x,x]
         
+        # print('num initial degrees specified',len(degrees))
         num_infected, pd_ml, pd_rand_leaf = runExperiments.run_randtree(1, max_time, max_infection, degrees_rv, degrees)
         total_pd_ml += pd_ml[-1]
         total_pd_rand_leaf += pd_rand_leaf[-1]

@@ -180,7 +180,7 @@ def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection
         # Estimating the error
         # ML estimate
         ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
-        rand_leaf_estimate = estimation.rand_leaf_estimate(who_infected)
+        rand_leaf_estimate = estimation.rand_leaf_estimate(who_infected, degrees)
         ml_correct[timesteps] = (ml_estimate == source)
         rand_leaf_correct[timesteps] = (rand_leaf_estimate == source)
         tot_num_infected[timesteps] = num_infected
