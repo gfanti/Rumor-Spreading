@@ -31,6 +31,7 @@ if __name__ == "__main__":
     degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
     
     total_pd_ml = 0.0
+    pd_ml_progression = []
     
     for t in range(trials):
         # build up the degrees vector: degrees with which to infect new nodes
@@ -56,9 +57,11 @@ if __name__ == "__main__":
         
         num_infected_all.append(num_infected)
         pd_ml_all.append(pd_ml)
+        
+        pd_ml_progression.append(total_pd_ml / float(trials))
     
     total_pd_ml /= float(trials)
     print('Overall pd_ml is ',total_pd_ml)
     print('1/m is ',1/7)
     
-    io.savemat('results/irregular_tree_fixed_m',{'pd_ml':np.array(total_pd_ml), 'trials':np.array(trials)})
+    io.savemat('results/irregular_tree_fixed_m',{'pd_ml':np.array(total_pd_ml), 'pd_progression':np.array(pd_ml_progression), 'trials':np.array(trials)})
