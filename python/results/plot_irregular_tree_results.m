@@ -1,7 +1,8 @@
-load('irregular_tree_results.mat')
+load('regular_tree_results_1000trials.mat')
 
 [num_d,max_T] = size(pd_ml);
 
+figure(1)
 plot(num_infected', pd_ml')
 xlabel('Number of nodes')
 ylabel('Pd over 1000 trials')
@@ -18,7 +19,7 @@ ylabel('Approximate Integral of Pd over N')
 
 figure(3)
 [m,I] = min(pd_ml);
-plot(1:8,d_values(I)+1)
+plot(1:max_T,d_values(I)+1)
 xlabel('Timestep (T)')
 ylabel('Optimal d_o')
 

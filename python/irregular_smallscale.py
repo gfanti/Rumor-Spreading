@@ -7,7 +7,7 @@ import runExperiments
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 1000
+    trials = 100
     max_time = 2
     max_infection = 99
     
@@ -28,40 +28,37 @@ if __name__ == "__main__":
     num_infected_all = []
     pd_ml_all = []
     
-    for max_infection in ds.tolist():
-        max_infection = 99
-        # print('Checking d_o = ',max_infection+1)
-        degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
-        
-        total_pd_ml = 0.0
-        
-        for t in range(trials):
-            # build up the degrees vector: degrees with which to infect new nodes
-            # 1st infected node
-            degrees = degrees_rv.rvs(size=1).tolist()  # [x]
-            # T = 0.5
+    degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
+    
+    total_pd_ml = 0.0
+    
+    for t in range(trials):
+        # build up the degrees vector: degrees with which to infect new nodes
+        # 1st infected node
+        degrees = degrees_rv.rvs(size=1).tolist()  # [x]
+        # T = 0.5
+        degrees += degrees_rv.rvs(size=1).tolist()  # [x]
+        # T = 1
+        degrees += [3] + degrees_rv.rvs(size=2).tolist()  # [3,x,x]
+        # T = 1.5
+        if degrees[1] == 4:
+            degrees += [3,3]  # depends on T = 0.5, should sum to 10
+        else:
             degrees += degrees_rv.rvs(size=1).tolist()  # [x]
-            # T = 1
-            degrees += [3] + degrees_rv.rvs(size=2).tolist()  # [3,x,x]
-            # T = 1.5
-            if degrees[1] == 4:
-                degrees += [3,3]  # depends on T = 0.5, should sum to 10
-            else:
-                degrees += degrees_rv.rvs(size=1).tolist()  # [x]
-                degrees += [10 - degrees[1] - degrees[-1]]  # depends on T = 0.5, should sum to 10
-            # T = 2
-            remaining = sum(degrees[-2:]) - 2
-            degrees += degrees_rv.rvs(size=remaining).tolist()  # [x,x,x,x]
-            
-            num_infected, pd_ml = runExperiments.run_randtree(1, max_time, max_infection, degrees_rv, degrees)
-            total_pd_ml += pd_ml[-1]
-            # print('pd', pd_ml)
-            
-            num_infected_all.append(num_infected)
-            pd_ml_all.append(pd_ml)
+            degrees += [10 - degrees[1] - degrees[-1]]  # depends on T = 0.5, should sum to 10
+        # T = 2
+        remaining = sum(degrees[-2:]) - 2
+        degrees += degrees_rv.rvs(size=remaining).tolist()  # [x,x,x,x]
+        
+        num_infected, pd_ml = runExperiments.run_randtree(1, max_time, max_infection, degrees_rv, degrees)
+        total_pd_ml += pd_ml[-1]
+        # print('pd', pd_ml)
+        
+        num_infected_all.append(num_infected)
+        pd_ml_all.append(pd_ml)
     
     total_pd_ml /= float(trials)
     print('Overall pd_ml is ',total_pd_ml)
     print('1/m is ',1/7)
     
-    # io.savemat('results/irregular_tree_results',{'pd_ml':np.array(pd_ml_all), 'num_infected':np.array(num_infected_all), 'd_values':ds})
+    io.savemat('results/irregular_tree_fixed_m',{'pd_ml':np.array(total_pd_ml), 'trials':np.array(trials)})
