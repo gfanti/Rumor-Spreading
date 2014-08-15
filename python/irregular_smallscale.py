@@ -58,7 +58,7 @@ if __name__ == "__main__":
         num_infected_all.append(num_infected)
         pd_ml_all.append(pd_ml)
         
-        pd_ml_progression.append(total_pd_ml / float(t))
+        pd_ml_progression.append(total_pd_ml / (float(t)+1))
     
     total_pd_ml /= float(trials)
     print('Overall pd_ml is ',total_pd_ml)
