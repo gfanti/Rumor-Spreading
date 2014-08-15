@@ -2,12 +2,13 @@ import scipy.io as io
 import numpy as np
 from scipy import stats
 import utilities
+import random
 import runExperiments
 
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 1000
+    trials = 100000
     max_time = 2
     max_infection = 10000000
     
@@ -33,8 +34,10 @@ if __name__ == "__main__":
     
     total_pd_ml = 0.0
     total_pd_rand_leaf = 0.0
+    total_oneseventh = 0.0
     pd_ml_progression = []
     pd_rand_leaf_progression = []
+    oneseventh_progression = []
     
     for t in range(trials):
         # build up the degrees vector: degrees with which to infect new nodes
@@ -63,6 +66,7 @@ if __name__ == "__main__":
         num_infected, pd_ml, pd_rand_leaf = runExperiments.run_randtree(1, max_time, max_infection, degrees_rv, degrees)
         total_pd_ml += pd_ml[-1]
         total_pd_rand_leaf += pd_rand_leaf[-1]
+        total_oneseventh += random.random() < 1.0/7.0
         # print('pd', pd_ml)
         
         num_infected_all.append(num_infected)
@@ -71,10 +75,11 @@ if __name__ == "__main__":
         
         pd_ml_progression.append(total_pd_ml / (float(t)+1))
         pd_rand_leaf_progression.append(total_pd_rand_leaf / (float(t)+1))
+        oneseventh_progression.append(total_oneseventh / (float(t)+1))
     
     total_pd_ml /= float(trials)
     total_pd_rand_leaf /= float(trials)
     print('Overall pd_ml is ',total_pd_ml)
     print('1/m is ',1/7)
     
-    io.savemat('results/irregular_tree_fixed_m_10',{'pd_ml':np.array(total_pd_ml), 'pd_progression_ml':np.array(pd_ml_progression), 'pd_progression_rand_leaf':np.array(pd_rand_leaf_progression), 'trials':np.array(trials)})
+    io.savemat('results/irregular_tree_fixed_m_10',{'pd_ml':np.array(total_pd_ml), 'pd_progression_ml':np.array(pd_ml_progression), 'pd_progression_rand_leaf':np.array(pd_rand_leaf_progression), 'oneseventh_progression':np.array(oneseventh_progression), 'trials':np.array(trials)})
