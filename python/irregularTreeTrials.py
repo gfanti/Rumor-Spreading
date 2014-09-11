@@ -2,11 +2,12 @@ import scipy.io as io
 import numpy as np
 from scipy import stats
 import utilities
+import runExperiments
 
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 6000
+    trials = 6
     max_time = 9
     max_infection = 3
     
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     for max_infection in ds.tolist():
         print('Checking d_o = ',max_infection+1)
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
-        num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv)
+        num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv)[:2]
         
         num_infected_all.append(num_infected)
         pd_ml_all.append(pd_ml)

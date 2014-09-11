@@ -79,8 +79,8 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
             previous_vs = 0
             
             # infect twice in one direction, always
-            degrees, who_infected = utilities.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)
-            infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)
+            degrees, who_infected = utilities.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
+            infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)[:2]
             m = 1       # the virtual source is always going to be 1 hop away from the true source
             
         else:
@@ -89,7 +89,7 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
             if random.random() < utilities.compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
                 # branch once in every direction
                 for neighbor in current_neighbors:
-                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)
+                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)[:2]
             
             else:           # spread asymmetrically
                 # find a direction to move
@@ -103,8 +103,8 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
                 m += 1;
                 
                 # branch twice in one direction
-                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)
-                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)
+                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
+                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
                 
                 virtual_source = virtual_source_candidate
             
@@ -179,7 +179,8 @@ def infect_nodes_adaptive_diff_irregular_tree_alt(source, max_time, max_infectio
 
         # Estimating the error
         # ML estimate
-        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
+        mode = 1 # call the alt version of the estimator
+        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, mode)
         ml_correct[timesteps] = (ml_estimate == source)
         tot_num_infected[timesteps] = num_infected
         

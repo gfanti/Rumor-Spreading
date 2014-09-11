@@ -310,24 +310,50 @@ def ml_message_passing_irregular_trees(d, depth, messages, infected_nodes_degree
 
     if called_node == calling_node:
         for i in who_infected[called_node]:
-            messages[i] = messages[calling_node]*(1.0/(infected_nodes_degree[i]))
+            messages[i] = messages[calling_node]*(1.0/(infected_nodes_degree[i]))*d
             messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
 
-    elif len(who_infected[called_node]) != 1:
+    elif len(who_infected[called_node]) != 1: #if not a leaf
         for i in who_infected[called_node]:
              if i != calling_node:
-                messages[i] = messages[called_node]*(pow(d-1,depth))*(float(infected_nodes_degree[called_node])/(infected_nodes_degree[called_node]-1))*(1.0/(infected_nodes_degree[i]))
+                messages[i] = messages[called_node]*(d-1)*(float(infected_nodes_degree[called_node])/(infected_nodes_degree[called_node]-1))*(1.0/(infected_nodes_degree[i]))
                 messages = ml_message_passing_irregular_trees(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node) 
+    return messages 
+
+# ML over irregular infinite trees using weighted spreading
+def ml_message_passing_irregular_trees_alt(d, depth, messages, infected_nodes_degree, who_infected, called_node, calling_node, prev_prob=0): 
+
+    prob = [float(infected_nodes_degree[calling_node]),sum([infected_nodes_degree[k] for k in who_infected[called_node]])]
+    if called_node == calling_node:
+        for i in who_infected[called_node]:
+            # probability of choosing the vs instead of another neighbor
+            messages[i] = messages[calling_node] * d * prob[0] / prob[1]
+            messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node, prob) 
+
+    elif len(who_infected[called_node]) != 1: #if not a leaf
+        correction_factor = float(prev_prob[1]) / (prev_prob[1]-infected_nodes_degree[called_node])
+        for i in who_infected[called_node]:
+             if i != calling_node:
+                messages[i] = messages[called_node] * (d-1) * correction_factor * prob[0] / prob[1]
+                messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, infected_nodes_degree, who_infected, i, called_node, prob) 
     return messages 
     
     
-def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who_infected):        
+def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who_infected, mode=0):        
+    # Returns the ML estimate of the source over an irregular tree 
+    # Inputs:
+    #
+    #       d:                      assumed regular degree for computing the alphas
+    #       T:                      number of timesteps to run
+    #       virtual_source:         the virtual source of the infected subtree
+    #       infected_nodes_degree:  the degrees of all infected nodes
+    #       who_infected:           adjacency matrix of the infected subgraph
+    #       mode:                   which type of estimator to use (mode=0 -> use the regular estimator, mode=1-> use the alternative estimator
+    #
+    # Outputs:
+    #
+    #       ml_estimate:            the node with the highest likelihood of being the true source 
 
-    # print('ml estimate who infected', who_infected)
-    # print('degrees',infected_nodes_degree)
-    # print('d',d)
-    # print('T',T)
-    # print('virtual source',virtual_source)
     
     # compute the probability of not passing the virtual source token
     p = 1;
@@ -336,7 +362,10 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
     # initializing the messages vector to contain the probability of not passing the virtual source token
     messages = [p]*len(who_infected)
     # computing the likelihood of all the nodes via a message passing algorithm
-    messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
+    if mode==0:
+        messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
+    else:
+        messages = ml_message_passing_irregular_trees_alt(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
     # the likelihood of the virtual source is equal to zero
     messages[virtual_source] = 0
     # finding the likelihood of the ML estimate
