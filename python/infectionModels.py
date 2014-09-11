@@ -180,7 +180,7 @@ def infect_nodes_adaptive_diff_irregular_tree_alt(source, max_time, max_infectio
         # Estimating the error
         # ML estimate
         mode = 1 # call the alt version of the estimator
-        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, mode)
+        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, mode)
         ml_correct[timesteps] = (ml_estimate == source)
         tot_num_infected[timesteps] = num_infected
         
