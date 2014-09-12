@@ -154,7 +154,7 @@ def infect_nodes_adaptive_diff_irregular_tree_alt(source, max_time, max_infectio
             if random.random() < utilities.compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
                 # branch once in every direction
                 for neighbor in current_neighbors:
-                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)
+                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)[:2]
             
             else:           # spread asymmetrically
                 # find a direction to move. weight each direction by the degree of the node

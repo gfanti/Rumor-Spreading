@@ -14,7 +14,7 @@ if __name__ == "__main__":
     # Irregular infinite graph
     xk = np.arange(3,5)
     pk = (0.5,0.5)
-    dd = 0.05
+    dd = 0.5
     ds = np.arange(1.0,4.05,dd)
     
     # Regular infinite graph
