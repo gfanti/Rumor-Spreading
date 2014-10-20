@@ -5,6 +5,7 @@ from scipy import stats
 import numpy as np
 import utilities
 
+# This is the original semi-distributed adaptive diffusion, which operates in 2 timesteps
 def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alpha, beta):
     num_nodes = len(adjacency)
     timesteps = 1;
@@ -55,8 +56,7 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
         timesteps += 1
         
     return adjacency, num_infected
-    
-    
+
 def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, degrees_rv):
     timesteps = 0
     
@@ -259,7 +259,74 @@ def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection
         timesteps += 1
         
     return tot_num_infected, infection_pattern, who_infected, ml_correct, rand_leaf_correct, known_degrees
+
+# Our adaptive, fully distributed adaptive diffusion spreading algorithm for a line, applied to trees
+def infect_nodes_line_adaptive_diff(source, max_time, max_infection, degrees_rv):
     
+    timesteps = 0
+    
+    # initially the virtual source and the true source are the same
+    virtual_source = source
+
+    tot_num_infected = [0 for i in range(max_time)]
+    
+    who_infected = [[]]
+    degrees = degrees_rv.rvs(size=1).tolist()
+            
+    
+    leaves = [source]
+    leaves_dist_from_source = [0];
+    num_infected = 1
+    
+    jordan_correct = [0 for i in range(max_time)]
+    rumor_correct = [0 for i in range(max_time)]
+    # We don't know how to compute the ML in this case
+    
+    blocked = False
+    # print('trial')
+    while timesteps < max_time:
+        new_leaves = []
+        new_leaves_dist_from_source = []
+        # For each edge emanating from each leaf, flip a coin
+        for leaf, leaf_dist_from_source in zip(leaves, leaves_dist_from_source):
+            neighbors = [i for i in range(num_infected, num_infected + max_infection + 1 - len(who_infected[leaf]))]
+            
+            coin_flips = [random.random() for i in range(len(neighbors))]
+            ratio = ((leaf_dist_from_source + 1) / (timesteps+2))
+            # Figure out how many leaves actually got infected
+            infections = sum([i < ratio for i in coin_flips])
+            infected_neighbors = neighbors[:infections]
+            degrees, who_infected = utilities.infect_nodes_randtree(leaf, infected_neighbors, degrees, degrees_rv, who_infected)[:2]
+            
+            # Update the new leaves, and their distances from the source
+            new_leaves += infected_neighbors
+            new_leaves_dist_from_source += [(leaf_dist_from_source + 1) for i in range(infections)]
+            num_infected += infections
+            # Make sure the original leaf is still a "leaf" if all its neighbors did not get infected
+            if len(who_infected[leaf]) < (max_infection + 1):
+                new_leaves += [leaf]
+                new_leaves_dist_from_source += [leaf_dist_from_source]
+
+        # Sort the new leaves
+        new_leaves, new_leaves_dist_from_source = zip(*sorted(zip(new_leaves, new_leaves_dist_from_source)))
+        leaves = new_leaves
+        leaves_dist_from_source = new_leaves_dist_from_source
+        
+        # Jordan-centrality estimate
+        jordan_estimate = estimation.jordan_centrality(who_infected)
+        jordan_correct[timesteps] = (jordan_estimate == source)
+        
+        # Rumor centrality estimate
+        rumor_estimate = estimation.rumor_centrality(who_infected)
+        rumor_correct[timesteps] = (rumor_estimate == source)
+                
+        results = (jordan_correct, rumor_correct)
+        tot_num_infected[timesteps] = num_infected
+        timesteps += 1
+        
+    return tot_num_infected, who_infected, results
+
+# Our adaptive, semi-distributed adaptive diffusion spreading algorithm
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
     num_nodes = len(adjacency)
     timesteps = 0
@@ -380,7 +447,7 @@ def prob_G_given_m_and_T(T,m):
     return prob
     
 
-    
+# This is Pramod's deterministic tree-shaped spreading algorithm.
 def infect_nodes_deterministic(source, adjacency):
     num_nodes = len(adjacency)
     num_infected = 0;
@@ -426,7 +493,7 @@ def infect_nodes_deterministic(source, adjacency):
         old_infecting_nodes, new_infecting_nodes = new_infecting_nodes, old_infecting_nodes
     
     return num_infected, infection_pattern
-        
+
 def pick_random_elements(neighbors,num_neighbors):
     # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list
     # Inputs
@@ -448,8 +515,7 @@ def pick_random_elements(neighbors,num_neighbors):
         likelihood = 1
     random_elements.sort()
     return random_elements, neighbors, likelihood
-        
-        
+  
 def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
     # pass an instruction to branch from the source to the leaves overn an infinite tree
     # Inputs

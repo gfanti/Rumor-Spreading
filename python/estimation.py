@@ -44,15 +44,19 @@ def rumor_centrality(who_infected):
 
 def jordan_centrality(adjacency):
     # computes the estimate of the source based on jordan centrality
-    
+    # print('adjacency', adjacency)
     num_nodes = len(adjacency)
     
+    if num_nodes == 1:
+        return 0
+    elif num_nodes == 2:
+        return int(random.random() < 0.5)
+
     # choose a root that is not a leaf
     while True:
         root = random.randint(0,num_nodes-1)
         if len(adjacency[root]) > 1:
             break
-    
     # initialize lists
     up_count = [0 for i in range(num_nodes)]
     up_count_2nd = [0 for i in range(num_nodes)]
@@ -63,7 +67,9 @@ def jordan_centrality(adjacency):
     up_count, up_count_2nd, up_id, up_id_2nd = get_messages(root, root, adjacency, up_count, up_count_2nd, up_id, up_id_2nd)
     
     # now find the jordan center
+    # print('up count', up_count, 'up cound 2nd', up_count_2nd)
     idx_jordan = find_center(root, up_count, up_count_2nd, up_id, up_id_2nd)
+    # print('estimate', idx_jordan, 'root', root)
     return idx_jordan
     
 def get_messages(parent,node,adjacency,up_count,up_count_2nd,up_id,up_id_2nd):

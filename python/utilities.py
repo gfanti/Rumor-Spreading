@@ -84,14 +84,14 @@ def infect_nodes(node, children, infection_pattern, who_infected):
     
 def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
     # infect_nodes infects the nodes listed in children from 'node'
-    # Inputs
+    # Args:
     #       node:               source of the infection
     #       children:           array of child ids
     #       infection_pattern:  binary array describing whether each node is already infected or not
     #       adjacency:          adjacency relations for the underlying network
     #       who_infected:       adjacency relations for the infected subgraph
     #
-    # Outputs
+    # Outputs:
     #       infection_pattern   (updated)
     #       who_infected        (updated)
 
