@@ -8,7 +8,7 @@ import runExperiments
 if __name__ == "__main__":
 
     max_times = [40, 15, 9, 8]
-    degrees = 2:5
+    degrees = [i for i in range(2,6)]
     trials = 5
     
     for (degree, max_time) in zip(degrees, max_times):
