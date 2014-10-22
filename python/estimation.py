@@ -44,7 +44,6 @@ def rumor_centrality(who_infected):
 
 def jordan_centrality(adjacency):
     # computes the estimate of the source based on jordan centrality
-    # print('adjacency', adjacency)
     num_nodes = len(adjacency)
     
     if num_nodes == 1:
@@ -67,9 +66,7 @@ def jordan_centrality(adjacency):
     up_count, up_count_2nd, up_id, up_id_2nd = get_messages(root, root, adjacency, up_count, up_count_2nd, up_id, up_id_2nd)
     
     # now find the jordan center
-    # print('up count', up_count, 'up cound 2nd', up_count_2nd)
     idx_jordan = find_center(root, up_count, up_count_2nd, up_id, up_id_2nd)
-    # print('estimate', idx_jordan, 'root', root)
     return idx_jordan
     
 def get_messages(parent,node,adjacency,up_count,up_count_2nd,up_id,up_id_2nd):

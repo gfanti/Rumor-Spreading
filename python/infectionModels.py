@@ -292,7 +292,7 @@ def infect_nodes_line_adaptive_diff(source, max_time, max_infection, degrees_rv)
             neighbors = [i for i in range(num_infected, num_infected + max_infection + 1 - len(who_infected[leaf]))]
             
             coin_flips = [random.random() for i in range(len(neighbors))]
-            ratio = ((leaf_dist_from_source + 1) / (timesteps+2))
+            ratio = (float(leaf_dist_from_source + 1) / (timesteps+2))
             # Figure out how many leaves actually got infected
             infections = sum([i < ratio for i in coin_flips])
             infected_neighbors = neighbors[:infections]
