@@ -1,40 +1,33 @@
 import scipy.io as io
 import numpy as np
 from scipy import stats
-import utilities
 import runExperiments
+import utilities
 
 '''Run the irregular tree algorithm'''
 if __name__ == "__main__":
 
-    trials = 6
-    max_time = 9
-    max_infection = 3
+    trials = 1
+    write_results = False
+    alt = True # Use the alternative method of spreading virtual sources?
     
     # Irregular infinite graph
-    xk = np.arange(3,5)
-    pk = (0.5,0.5)
-    dd = 0.5
-    ds = np.arange(1.0,4.05,dd)
+    xks = [np.arange(2,4), np.arange(3,5), np.arange(2,5)]
+    pks = [(0.5, 0.5), (0.5, 0.5), (0.5, 0.25, 0.5)]
+    max_times = [13, 7, 10]
+    max_infection = 2
     
-    # Regular infinite graph
-    # xk = np.arange(3,4)
-    # pk = (1)
-    # ds = np.array([2])
-    
-    # want to find the best max_infection (i.e., d-1) to minimize pd
-    
-    num_infected_all = []
-    pd_ml_all = []
-    
-    for max_infection in ds.tolist():
-        print('Checking d_o = ',max_infection+1)
+    for (xk, pk, max_time) in zip(xks, pks, max_times):
+        print('Checking xks = ',xk)
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
-        num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv)[:2]
-        
-        num_infected_all.append(num_infected)
-        pd_ml_all.append(pd_ml)
-    # print('Max likelihood Pd: ',pd_ml_all)
-    #print('\nMean number of nodes: ',num_infected_all)
-    
-    io.savemat('results/irregular_tree_results',{'pd_ml':np.array(pd_ml_all), 'num_infected':np.array(num_infected_all), 'd_values':ds})
+        if alt:
+            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 1)[:2]
+        else:
+            # Use regular spreading
+            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0)[:2]
+        print(pd_ml)
+
+        if write_results:
+            xk_str = [str(i) for i in xk]
+            filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + '.mat'
+            io.savemat(filename,{'pd_ml':np.array(pd_ml), 'num_infected':np.array(num_infected)})

@@ -4,9 +4,9 @@ from scipy import stats
 
 
 def nCk(n, k):
-    """
+    '''
     A fast way to calculate binomial coefficients by Andrew Dalke (contrib).
-    """
+    '''
     if 0 <= k <= n:
         ntok = 1
         ktok = 1
@@ -19,14 +19,16 @@ def nCk(n, k):
         return 0
         
 def compute_alpha(m,T,d):
-    # Compute the probability of keeping the virtual source
-    # Inputs
-    #       m:          distance from the virtual source to the true source, in hops
-    #       T:          time
-    #       d:          degree of the d-regular tree
-    #
-    # Outputs
-    #       alpha:      the probability of keeping the virtual source where it is
+    '''
+    Compute the probability of keeping the virtual source
+    Arguments:
+          m:          distance from the virtual source to the true source, in hops
+          T:          time
+          d:          degree of the d-regular tree
+    
+    Outputs:
+          alpha:      the probability of keeping the virtual source where it is
+    '''
     
     alpha1 = float(N(T,d)) / (N(T+1,d))
     if m == 1:
@@ -40,13 +42,15 @@ def compute_alpha(m,T,d):
     return alpha
 
 def N(T,d):
-    # Compute the number of graphs that can appear at time T in a d-regular graph
-    # Inputs
-    #       T:          time
-    #       d:          degree of the d-regular tree
-    #
-    # Outputs
-    #       n           the number of nodes at time T
+    '''
+    Compute the number of graphs that can appear at time T in a d-regular graph
+    Arguments:
+          T:          time
+          d:          degree of the d-regular tree
+    
+    Outputs:
+          n           the number of nodes at time T
+    '''
     
     if d > 2:
         n = float(d) / (d-2) * (pow(d-1,T)-1)
@@ -55,27 +59,43 @@ def N(T,d):
     return n
     
 def N_nodes(T,d):
-    # Compute the number of nodes that appear in a graph at time T in a d-regular graph
+    '''
+    Compute the number of nodes that appear in a graph at time T in a d-regular graph
+    '''
     return N(T,d) + 1
     
 def infect_nodes_infinite_tree(node, num_children, adjacency):
+    '''
+    Infect nodes in an infinite tree given the adjacency matrix
+    
+    Arguments:
+        node: The infecting node
+        num_children: The number of children to infect
+        adjacency: The adjacency matrix of the infected subgraph so far.
+    
+    Outputs:
+        The updated adjacency matrix.
+    '''
+
     adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
     adjacency = adjacency + [[node] for i in range(num_children)]
     return adjacency
     
 def infect_nodes(node, children, infection_pattern, who_infected):
-    # infect_nodes infects the nodes listed in children from 'node'
-    # Inputs
-    #       node:               source of the infection
-    #       children:           array of child ids
-    #       infection_pattern:  binary array describing whether each node is already infected or not
-    #       adjacency:          adjacency relations for the underlying network
-    #       who_infected:       adjacency relations for the infected subgraph
-    #
-    # Outputs
-    #       infection_pattern   (updated)
-    #       who_infected        (updated)
-
+    '''
+    Infects the nodes listed in children
+    Inputs
+          node:               source of the infection
+          children:           array of child ids
+          infection_pattern:  binary array describing whether each node is already infected or not
+          adjacency:          adjacency relations for the underlying network
+          who_infected:       adjacency relations for the infected subgraph
+    
+    Outputs
+          infection_pattern   (updated)
+          who_infected        (updated)
+    '''
+    
     who_infected[node] += children
     for child in children:
         infection_pattern[child] = 1
@@ -83,18 +103,20 @@ def infect_nodes(node, children, infection_pattern, who_infected):
     return infection_pattern, who_infected
     
 def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
-    # infect_nodes infects the nodes listed in children from 'node'
-    # Args:
-    #       node:               source of the infection
-    #       children:           array of child ids
-    #       infection_pattern:  binary array describing whether each node is already infected or not
-    #       adjacency:          adjacency relations for the underlying network
-    #       who_infected:       adjacency relations for the infected subgraph
-    #
-    # Outputs:
-    #       infection_pattern   (updated)
-    #       who_infected        (updated)
-
+    '''
+    infect_nodes infects the nodes listed in children from 'node'
+    Arguments:
+        node:               source of the infection
+        children:           array of child ids
+        degrees:            array of infected nodes' degrees
+        degrees_rv:         random variable describing the degree distribution
+        who_infected:       adjacency relations for the infected subgraph
+    
+    Outputs:
+        infection_pattern   (updated)
+        who_infected        (updated)
+    '''
+    
     who_infected[node] += children
     for child in children:
         who_infected.append([node])

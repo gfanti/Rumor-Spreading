@@ -5,8 +5,22 @@ from scipy import stats
 import numpy as np
 import utilities
 
-# This is the original semi-distributed adaptive diffusion, which operates in 2 timesteps
-def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alpha, beta):
+# Semi-distributed adaptive diffusion over regular trees
+def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
+    '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
+    tree.
+    
+    Arguments:
+        source: The ID of the source node (usually 0)
+        adjacency: The adjacency relations of the underlying tree
+        max_degree: The maximum number of nodes an infected node will infect in any timestep
+        max_time: The maximum number of timesteps to run the algorithm
+        alpha: Probability with which the virtual source moves
+      
+    Returns:
+        adjacency: (updated)
+        num_infected: Number of infected nodes
+    '''
     num_nodes = len(adjacency)
     timesteps = 1;
     
@@ -28,27 +42,24 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
             
         if timesteps % 2 == 1:
             current_neighbors = [k for k in adjacency[virtual_source]]
+            # If blocked, break out of the loop
             if len(current_neighbors) < 1:
-                # print('Blocked. Total neighbors: ',adjacency[node])
-                # print('Available neighbors: ',current_neighbors)
                 blocked = True
                 break
                 
             virtual_source_candidate, current_neighbors = pick_random_elements(current_neighbors,1)
             virtual_source_candidate = virtual_source_candidate[0]
-            # include beta here
-            # print('passing from ',virtual_source, ' to ', virtual_source_candidate)
             adjacency = pass_branch_message_infinite_tree(virtual_source, virtual_source_candidate, adjacency, max_degree)
             
             
         # in even timesteps, choose whether to move the virtual source
         else:
+            # With probability alpha, move the virtual source
             if random.random() < utilities.compute_alpha(m,timesteps,max_infection):
-                # print('passing from ',virtual_source, ' to ', virtual_source_candidate)
                 adjacency = pass_branch_message_infinite_tree(virtual_source, virtual_source_candidate, adjacency, max_degree)
                 virtual_source = virtual_source_candidate
+            # Otherwise, keep it where it is, and spread symmetrically
             else:
-                # print('passing from ',virtual_source_candidate, ' to ', virtual_source)
                 adjacency = pass_branch_message_infinite_tree(virtual_source_candidate, virtual_source, adjacency, max_degree)
     
         num_infected = len(adjacency)
@@ -57,7 +68,27 @@ def infect_nodes_adaptive_diff_tree(source, adjacency, max_degree, max_time, alp
         
     return adjacency, num_infected
 
-def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, degrees_rv):
+# Semi-distributed adaptive diffusion over irregular trees
+def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
+                                              degrees_rv, alt = False):
+    '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
+    tree.
+    
+    Arguments:
+        source: The ID of the source node (usually 0)
+        max_time: The maximum amount of timesteps to run the algorithm
+        max_infection: The maximum number of nodes an infected node will infect in any timestep
+        degrees_rv: A random variable that describes the graph degree
+        alt: Tells whether you would like to use the alternative spreading (weights virtual
+            sources by their degree)
+      
+    Returns:
+        infection_details: A list of the characteristics of the infection:
+            - tot_num_infected: Total number of infected nodes at each timestep
+            - infection_pattern: Which nodes got infected in which order
+            - who_infected: Adjacency matrix of infected subgraph
+        ml_correct: The ML estimate of the true source'''
+    
     timesteps = 0
     
     # initially the virtual source and the true source are the same
@@ -86,17 +117,26 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
 
-            if random.random() < utilities.compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            if random.random() < utilities.compute_alpha(m,timesteps,max_infection):
                 # branch once in every direction
                 for neighbor in current_neighbors:
                     degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)[:2]
             
-            else:           # spread asymmetrically
+            # Otherwise, spread symmetrically
+            else:
                 # find a direction to move
-                virtual_source_candidate = [previous_vs]
-                while virtual_source_candidate[0] == previous_vs:
-                    virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
-                virtual_source_candidate = virtual_source_candidate[0]
+                if alt: # Weight new virtual sources by their degree
+                    current_neighbors.remove(previous_vs)
+                    weights = [degrees[i] for i in current_neighbors]
+                    weights = [i/sum(weights) for i in weights]
+                    virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
+                    virtual_source_candidate = virtual_source_rv.rvs(size=1)
+                else: # Choose uniformly between all virtual sources
+                    virtual_source_candidate = [previous_vs]
+                    while virtual_source_candidate[0] == previous_vs:
+                        virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
+                    virtual_source_candidate = virtual_source_candidate[0]
                 previous_vs = virtual_source
                 
                 # the virtual source moves one more hop away from the true source
@@ -112,85 +152,39 @@ def infect_nodes_adaptive_diff_irregular_tree(source, max_time, max_infection, d
 
         # Estimating the error
         # ML estimate
-        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
+        if alt: # Call the weighted estimator
+            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, 1)
+        else: # Call the regular estimator
+            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
         ml_correct[timesteps] = (ml_estimate == source)
         tot_num_infected[timesteps] = num_infected
         
-        # print('who_infected',who_infected)
-        
         timesteps += 1
         
-    return tot_num_infected, infection_pattern, who_infected, ml_correct
-    
-def infect_nodes_adaptive_diff_irregular_tree_alt(source, max_time, max_infection, degrees_rv):
-    timesteps = 0
-    
-    # initially the virtual source and the true source are the same
-    virtual_source = source
+    infection_details = (tot_num_infected, infection_pattern, who_infected)
+    return infection_details, ml_correct
 
-    # ML estimate
-    ml_correct = [0 for i in range(max_time)]
-    tot_num_infected = [0 for i in range(max_time)]
-    num_infected = 0
-    
-    who_infected = [[]]
-    degrees = degrees_rv.rvs(size=1).tolist()
-    
-    while timesteps < max_time:
-    
-            
-        if timesteps == 0:
-            virtual_source = 1
-            previous_vs = 0
-            
-            # infect twice in one direction, always
-            degrees, who_infected = utilities.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
-            infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)[:2]
-            m = 1       # the virtual source is always going to be 1 hop away from the true source
-            
-        else:
-            current_neighbors = [k for k in who_infected[virtual_source]]
-
-            if random.random() < utilities.compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
-                # branch once in every direction
-                for neighbor in current_neighbors:
-                    degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)[:2]
-            
-            else:           # spread asymmetrically
-                # find a direction to move. weight each direction by the degree of the node
-                current_neighbors.remove(previous_vs)
-                weights = [degrees[i] for i in current_neighbors]
-                weights = [i/sum(weights) for i in weights]
-                virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
-                virtual_source_candidate = virtual_source_rv.rvs(size=1)
-                
-                previous_vs = virtual_source
-                
-                # the virtual source moves one more hop away from the true source
-                m += 1;
-                
-                # branch twice in one direction
-                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
-                degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
-                
-                virtual_source = virtual_source_candidate
-            
-        num_infected = len(who_infected)
-
-        # Estimating the error
-        # ML estimate
-        mode = 1 # call the alt version of the estimator
-        ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, mode)
-        ml_correct[timesteps] = (ml_estimate == source)
-        tot_num_infected[timesteps] = num_infected
-        
-        # print('who_infected',who_infected)
-        
-        timesteps += 1
-        
-    return tot_num_infected, infection_pattern, who_infected, ml_correct
-    
+# Semi-distributed adaptive diffusion over predefined random tree    
 def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees):
+    '''infect_nodes_adaptive_planned_irregular_tree runs the spreading model over an irregular
+    tree when you already know the structure of the random tree.
+    
+    Arguments:
+        source: The ID of the source node (usually 0)
+        max_time: The maximum amount of timesteps to run the algorithm
+        max_infection: The maximum number of nodes an infected node will infect in any timestep
+        degrees_rv: A random variable that describes the graph degree
+        known_degrees: Tells the degrees of nodes in the irregular tree
+      
+    Returns:
+        infection_details: A list of the characteristics of the infection:
+            - tot_num_infected: Total number of infected nodes at each timestep
+            - infection_pattern: Which nodes got infected in which order
+            - who_infected: Adjacency matrix of infected subgraph
+        ml_correct: List of whether the ML estimate was right in each timestep
+        rand_leaf_correct: List of whether the random leaf estimate was right in each timestep
+        known_degrees: The degrees of nodes in the graph that got added during infection'''
+    
     timesteps = 0
     
     # initially the virtual source and the true source are the same
@@ -258,10 +252,11 @@ def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection
         
         timesteps += 1
         
-    return tot_num_infected, infection_pattern, who_infected, ml_correct, rand_leaf_correct, known_degrees
+    infection_details = (tot_num_infected, infection_pattern, who_infected)
+    return infection_details, ml_correct, rand_leaf_correct, known_degrees
 
-# Our adaptive, fully distributed adaptive diffusion spreading algorithm for a line, applied to trees
-def infect_nodes_line_adaptive_diff(source, max_time, max_infection, degrees_rv):
+# Fully distributed adaptive diffusion spreading algorithm for a line, applied to random trees
+def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
     
     timesteps = 0
     
@@ -324,9 +319,10 @@ def infect_nodes_line_adaptive_diff(source, max_time, max_infection, degrees_rv)
         tot_num_infected[timesteps] = num_infected
         timesteps += 1
         
-    return tot_num_infected, who_infected, results
+    infection_details = (tot_num_infected, who_infected)
+    return infection_details, results
 
-# Our adaptive, semi-distributed adaptive diffusion spreading algorithm
+# Adaptive, semi-distributed diffusion with known adjacency matrix (used for datasets)
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
     num_nodes = len(adjacency)
     timesteps = 0
@@ -447,7 +443,7 @@ def prob_G_given_m_and_T(T,m):
     return prob
     
 
-# This is Pramod's deterministic tree-shaped spreading algorithm.
+# Pramod's deterministic tree-shaped spreading algorithm.
 def infect_nodes_deterministic(source, adjacency):
     num_nodes = len(adjacency)
     num_infected = 0;
