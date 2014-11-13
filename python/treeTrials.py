@@ -8,7 +8,7 @@ import argparse
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description = "Run adaptive diffusion over trees.")
-    parser.add_argument("-t", '--trials', help = "Number of trials to run (default: 1)", default = 1)
+    parser.add_argument("-t", '--trials', help = "Number of trials to run (default: 1)", type = int, default = 1)
     parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
     parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
     args = parser.parse_args()

@@ -1,0 +1,33 @@
+Adaptive diffusion simulation code
+Giulia Fanti and Peter Kairouz, 2014
+
+This code contains scripts for running simulations of adaptive diffusion over various data structures.
+We provide code for two options:
+1) Running the algorithm over trees
+2) Running the algorithm over arbitrary graphs with specified adjacency matrices.
+
+
+
+1) Running the algorithm over trees:
+
+Call the following script:
+
+python treeTrials.py <args>
+    -t  trials          The number of trials to run. This requires an argument. 
+                            Default = 1
+    -a  alt             If you specify this argument, we will run alternative
+                            spreading, which weights higher degree nodes more.
+    -w  write_results   If you include this flag, we will write the results to
+                            file. Must specify filename in code.
+                            
+It is currently necessary to specify the set of degree distributions and the
+output filename in the code itself.
+
+To change the degree distribution, change the pks list and the xks.
+Each tuple in the pks is a discrete pmf. The corresponding list in xks is the
+corresponding degree option. So if 
+xks = [[2,4],[2,3]]
+pks = [(0.5,0.5), (0.25,0.75)]
+we will test two separate distributions. One over trees of degree 2 or 4 with
+equal probability, and one over trees of degree 2 or 3 with probability 0.25
+and 0.75, respectively.
