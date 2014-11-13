@@ -104,7 +104,7 @@ def infect_nodes(node, children, infection_pattern, who_infected):
     
 def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
     '''
-    infect_nodes infects the nodes listed in children from 'node'
+    infect_nodes infects the nodes listed in children from 'node' over a random tree
     Arguments:
         node:               source of the infection
         children:           array of child ids

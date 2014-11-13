@@ -441,7 +441,6 @@ def prob_G_given_m_and_T(T,m):
     for i in range(2,m+1):
         prob = prob * utilities.compute_alpha(i,T,d)
     return prob
-    
 
 # Pramod's deterministic tree-shaped spreading algorithm.
 def infect_nodes_deterministic(source, adjacency):
