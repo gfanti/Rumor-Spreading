@@ -52,7 +52,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
             
             # write the infected subgraph to file
             filename = 'infected_subgraph_'+str(trial)
-            exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
+            # exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
             
         p += float(num_infected) / num_true_nodes
     p = p / trials

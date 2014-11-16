@@ -269,8 +269,7 @@ def infect_set_likelihood(infected, adjacency_choices, new_infection_pattern, ma
     elif num_infected == 0:
         likelihood = 1
     else:
-        print('denominator', utilities.nCk(di, num_infected))
-        likelihood = math.log(1 / utilities.nCk(di, num_infected))
+        likelihood = math.log(1.0 / utilities.nCk(di, num_infected))
         
     return likelihood
 
