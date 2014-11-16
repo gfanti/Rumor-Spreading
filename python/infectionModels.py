@@ -323,7 +323,7 @@ def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
     return infection_details, results
 
 # Adaptive, semi-distributed diffusion with known adjacency matrix (used for datasets)
-def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, stepsize):
+def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     num_nodes = len(adjacency)
     timesteps = 0
     
@@ -337,14 +337,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
     jordan_correct = [0 for i in range(max_time)]
     rumor_correct = [0 for i in range(max_time)]
     ml_correct = [0 for i in range(max_time)]
-    
-    # compute the bins
-    max_nodes = int(N_nodes(max_time, max_infection+1))
-    bins = [i for i in range(1,max_nodes+stepsize+1,stepsize)]
-    jordan_detected = [0 for i in range(len(bins))]
-    rumor_detected = [0 for i in range(len(bins))]
-    instances = [0 for i in range(len(bins))]
-    
+        
     num_infected = 0
     
     blocked = False
@@ -363,16 +356,15 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
             virtual_source_candidate = virtual_source_candidate[0]
             infection_pattern, who_infected = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
             virtual_source = virtual_source_candidate
-            m = 1       # the virtual source is always going to be 1 hop away from the true source
+            m = 1       # the virtual source is always going to be 1 hop away from the true source at T=1
             
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
-
-            if random.random() < utilities.compute_alpha(m,timesteps,max_infection):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
-                # print('stay')
+            if (len(current_neighbors) < 2) or (random.random() < utilities.compute_alpha(m,timesteps,max_infection)):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
                 # if there is nowhere for the virtual source to move, keep it where it is
                 if len(current_neighbors) < 1:
                     blocked = True
+                    print('Blocked. Exiting.')
                     break
                     
                 # branch once in every direction
@@ -383,7 +375,6 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
                     infection_pattern, who_infected = pass_branch_message(virtual_source, current_neighbors[0], infection_pattern, adjacency, max_infection, who_infected)
                     previous_vs = virtual_source
                     virtual_source = current_neighbors[0]
-                    m -= 1
             
             else:           # spread asymmetrically
                 # find a direction to move
@@ -392,42 +383,34 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection, steps
                     virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
                 virtual_source_candidate = virtual_source_candidate[0]
                 previous_vs = virtual_source
-                
                 # the virtual source moves one more hop away from the true source
                 m += 1;
-                
+            
                 # branch twice in one direction
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
                 
                 virtual_source = virtual_source_candidate
-            
+        # print('Adjacency at time ', timesteps)
+        # utilities.print_adjacency(who_infected, adjacency)
+        # print('\n')
         num_infected = sum(infection_pattern)
-
-        # Estimating the error
-        bin_idx = next(x[0] for x in enumerate(bins) if x[1] > num_infected)
-        instances[bin_idx] += 1
 
         # Jordan-centrality estimate
         jordan_estimate = estimation.jordan_centrality(who_infected)
         jordan_correct[timesteps] = (jordan_estimate == source)
-        jordan_detected[bin_idx] += (jordan_estimate == source)
-        jordan_results = (bins,instances,jordan_detected, jordan_correct)
 
         # Rumor centrality estimate
         rumor_estimate = estimation.rumor_centrality(who_infected)
         rumor_correct[timesteps] = (rumor_estimate == source)
-        rumor_detected[bin_idx] += (rumor_estimate == source)
-        rumor_results = (bins,instances,rumor_detected, rumor_correct)
         
         # ML estimate
         ml_estimate, likelihoods = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, source)
         ml_correct[timesteps] = (ml_estimate == source)
         
-        results = (jordan_results, rumor_results, ml_correct)
+        results = (jordan_correct, rumor_correct, ml_correct)
         
         timesteps += 1
-        
     return num_infected, infection_pattern, who_infected, results
     
 def compute_permutation_likelihood(T,m):
@@ -587,7 +570,6 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
         infection_pattern, who_infected =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected)
             
     if leaf:
-        # print('leaf')
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)

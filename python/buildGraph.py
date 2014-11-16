@@ -65,8 +65,8 @@ def buildSmallWorldGraph(num_nodes, d):
     return adjacency
     
     
-def buildDatasetGraph(filename, min_degree):
-    num_nodes = 4941    # hard-coded number of nodes in this dataset
+def buildDatasetGraph(filename, min_degree, num_nodes = 4941):
+    # num_nodes: the maximum number of nodes to consider
     adjacency = [[] for i in range(num_nodes)]
     
     # open the datafile

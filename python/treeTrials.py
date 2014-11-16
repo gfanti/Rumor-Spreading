@@ -4,34 +4,11 @@ from scipy import stats
 import runExperiments
 import utilities
 import sys
-import argparse
 
-def parse_args(args):
-    parser = argparse.ArgumentParser(description = "Run adaptive diffusion over trees.")
-    parser.add_argument("-t", '--trials', help = "Number of trials to run (default: 1)", type = int, default = 1)
-    parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
-    parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
-    args = parser.parse_args()
-    
-    if args.trials:
-        trials = int(args.trials)
-    else:
-        trials = 1
-    if args.write_results:
-        write_results = bool(args.write_results)
-    else:
-        write_results = False # Do not write results to file
-    if args.alt:
-        alt = bool(args.alt)
-    else:
-        alt = False # Use the alternative method of spreading virtual sources?
-    print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
-    return(trials, write_results, alt)
-    
 if __name__ == "__main__":
 
     # Parse the arguments
-    trials, write_results, alt = parse_args(sys.argv)
+    trials, write_results, alt = utilities.parse_args(sys.argv)
     
     # Irregular infinite graph
     xks = [np.arange(2,4), np.arange(3,5), np.arange(2,5)]

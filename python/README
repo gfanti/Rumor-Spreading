@@ -4,7 +4,7 @@ Giulia Fanti and Peter Kairouz, 2014
 This code contains scripts for running simulations of adaptive diffusion over various data structures.
 We provide code for two options:
 1) Running the algorithm over trees
-2) Running the algorithm over arbitrary graphs with specified adjacency matrices.
+2) Running the algorithm over a graph dataset with a specified adjacency matrices.
 
 
 
@@ -31,3 +31,17 @@ pks = [(0.5,0.5), (0.25,0.75)]
 we will test two separate distributions. One over trees of degree 2 or 4 with
 equal probability, and one over trees of degree 2 or 3 with probability 0.25
 and 0.75, respectively.
+
+2) Running the algorithm over a dataset:
+
+python realGraphTrials.py <args>
+    -t  trials          The number of trials to run. This requires an argument. 
+                            Default = 1
+    -w  write_results   If you include this flag, we will write the results to
+                            file. Must specify filename in code.
+    -db database        Which database to use. Options:
+                            fb = facebook (default)
+                            pg = power grid
+                            
+The code expects to find the data in ../data/, and the filenames are stored in
+realGraphTrials.py, in case you wish to run experiments over more data.
