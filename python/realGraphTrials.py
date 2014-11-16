@@ -6,6 +6,7 @@ import numpy as np
 import utilities
 import runExperiments
 import sys
+from sys import platform as _platform
   
 if __name__ == "__main__":
 
@@ -15,7 +16,11 @@ if __name__ == "__main__":
     # Dataset options:
     # 1: Facebook
     # 2: Power Grid
-    prefix = '..\\data\\'
+    if _platform == "linux" or _platform == "linux2":
+        # linux
+        prefix = '../data/'
+    elif _platform == "win32":
+        prefix = '..\\data\\'
 
         
     ##---------- Real Graphs -------------------#
