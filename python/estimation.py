@@ -138,7 +138,7 @@ def find_center(root, up_count, up_count_2nd, up_id, up_id_2nd):
     return idx_jordan
     
 # ML Estimate
-def max_likelihood(who_infected, virtual_source, adjacency, max_infection, source):
+def max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_from_source, source):
     # compute the maximum likelihood estimate of the source using only leaves
     # Inputs
     #       who_infected:       adjacency relations for the infected subgraph
@@ -158,15 +158,22 @@ def max_likelihood(who_infected, virtual_source, adjacency, max_infection, sourc
     max_length = max([len(k) for k in paths])
     likelihoods = [float('-inf') for i in range(len(who_infected))]
     for i in range(len(who_infected)):
-    # for i in [source]:
         # this algorithm only works for leaves in the infected subgraph, and they should be at the boundary of the graph
         if (len(who_infected[i]) == 1) and len(paths[i]) == max_length:
             vs_path = [k for k in paths[i]]
             likelihoods[i] = compute_graph_likelihood(i, who_infected, adjacency, vs_path, max_infection)
-    indices = [i for i, x in enumerate(likelihoods) if x == max(likelihoods)]
+    max_likelihood = max(likelihoods)
+    indices = [i for i, x in enumerate(likelihoods) if x == max_likelihood]
     ml_estimate = random.choice(indices)
-    
-    return ml_estimate, likelihoods
+    # print('Finding the tree distance')
+    tree_dist = dist_from_source[ml_estimate]
+    # print('Tree distance: ', tree_dist)
+    # print('Tree distance: ', tree_dist, '. Now finding real dist. ')
+    # real_dist = get_estimate_dist(source, ml_estimate, adjacency)
+    # print('Real distance: ', real_dist)
+    # distances = [tree_dist, real_dist]
+    distances = tree_dist
+    return ml_estimate, likelihoods, distances
     
 def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infection):
     # compute the likelihood of the infected subgraph starting from node source
@@ -180,10 +187,11 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     # Outputs
     #       likelihood          likelihood of the graph given source 
     
-    new_infection_pattern = [0 for i in range(len(who_infected))]
+    nodes = range(len(who_infected))
+    new_infection_pattern = [0 for i in nodes]
     new_infection_pattern[source] = 1
     
-    new_who_infected = [[] for i in range(len(who_infected))]
+    new_who_infected = [[] for i in nodes]
 
     # first element is just the source itself
     current_vs = vs_path.pop(0)    
@@ -294,20 +302,6 @@ def get_paths(paths, who_infected, adjacency, called_node, calling_node):
                 paths = get_paths(paths, who_infected, adjacency, neighbor, called_node) 
     return paths
 
-    
-# def ml_message_passing(messages, adjacency, who_infected, called_node, calling_node):
-    # if len(who_infected[called_node]) != 1:
-        # for i in who_infected[called_node]:
-            # if i > calling_node:
-                # messages[i][0] = messages[calling_node][0] + 1; 
-                # messages[i][1] = messages[calling_node][1]*(1.0/(len(who_infected[called_node])-1))
-                # messages = ml_message_passing(messages, who_infected, called_node, i) 
-    # else:
-        # messages[i][0] = messages[calling_node][0] + 1; 
-        # messages[i][1] = messages[calling_node][1]*(1.0/len(who_infected[called_node]))                 
-
-    # return messages 
-
 # ML over irregular infinite trees
 def ml_message_passing_irregular_trees(d, depth, messages, infected_nodes_degree, who_infected, called_node, calling_node): 
 
@@ -393,3 +387,19 @@ def rand_leaf_estimate(who_infected, degrees, T):
 
     rand_leaf_estimate = random.choice(candidates)
     return rand_leaf_estimate
+
+def get_estimate_dist(source, destination, adjacency):
+    ''' Finds the minimum distances between source and ml_estimate, both on the
+    infection tree (who_infected) and on the underlying social network
+    (adjacency).
+    '''
+    visited, queue = [], [[source,0]]
+    while queue:
+        vertex = queue.pop(0)
+        if vertex[0] == destination:
+            return vertex[1]
+        if vertex[0] not in visited:
+            visited.append(vertex[0])
+            newnodes = [[i, vertex[1] + 1] for i in adjacency[vertex[0]] if i not in visited]
+            queue.extend(newnodes)
+    return -1

@@ -4,6 +4,7 @@ import random
 from scipy import stats
 import numpy as np
 import utilities
+# import cProfile
 
 # Semi-distributed adaptive diffusion over regular trees
 def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
@@ -322,6 +323,19 @@ def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
     infection_details = (tot_num_infected, who_infected)
     return infection_details, results
 
+# def do_cprofile(func):
+    # def profiled_func(*args, **kwargs):
+        # profile = cProfile.Profile()
+        # try:
+            # profile.enable()
+            # result = func(*args, **kwargs)
+            # profile.disable()
+            # return result
+        # finally:
+            # profile.print_stats()
+    # return profiled_func
+
+# @do_cprofile
 # Adaptive, semi-distributed diffusion with known adjacency matrix (used for datasets)
 def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     num_nodes = len(adjacency)
@@ -331,14 +345,17 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     virtual_source = source
     virtual_source_candidate = virtual_source
     
-    infection_pattern = [0]*num_nodes;
-    infection_pattern[source] = 1;
+    infection_pattern = [0]*num_nodes
+    dist_from_source = [-1]*num_nodes
+    infection_pattern[source] = 1
+    dist_from_source[source] = 0
     who_infected = [[] for i in range(num_nodes)]
     jordan_correct = [0 for i in range(max_time)]
     rumor_correct = [0 for i in range(max_time)]
     ml_correct = [0 for i in range(max_time)]
+    ml_distances = [[] for i in range(max_time)]
         
-    num_infected = 0
+    num_infected = []
     
     blocked = False
     
@@ -354,7 +371,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             # infect twice in one direction, always
             infection_pattern, who_infected = utilities.infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected)
             virtual_source_candidate = virtual_source_candidate[0]
-            infection_pattern, who_infected = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
+            infection_pattern, who_infected, dist_from_source = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
             virtual_source = virtual_source_candidate
             m = 1       # the virtual source is always going to be 1 hop away from the true source at T=1
             
@@ -369,10 +386,10 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
                     
                 # branch once in every direction
                 for neighbor in current_neighbors:
-                    infection_pattern, who_infected = pass_branch_message(virtual_source, neighbor, infection_pattern, adjacency, max_infection, who_infected)
+                    infection_pattern, who_infected, dist_from_source = pass_branch_message(virtual_source, neighbor, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
                 # take care of getting stuck
                 if len(current_neighbors) == 1:
-                    infection_pattern, who_infected = pass_branch_message(virtual_source, current_neighbors[0], infection_pattern, adjacency, max_infection, who_infected)
+                    infection_pattern, who_infected, dist_from_source = pass_branch_message(virtual_source, current_neighbors[0], infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
                     previous_vs = virtual_source
                     virtual_source = current_neighbors[0]
             
@@ -387,28 +404,31 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
                 m += 1;
             
                 # branch twice in one direction
-                infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
-                infection_pattern, who_infected = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected)
+                infection_pattern, who_infected, dist_from_source = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
+                infection_pattern, who_infected, dist_from_source = pass_branch_message(virtual_source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
                 
                 virtual_source = virtual_source_candidate
         # print('Adjacency at time ', timesteps)
         # utilities.print_adjacency(who_infected, adjacency)
         # print('\n')
-        num_infected = sum(infection_pattern)
+        num_infected = num_infected + [sum(infection_pattern)]
 
         # Jordan-centrality estimate
-        jordan_estimate = estimation.jordan_centrality(who_infected)
-        jordan_correct[timesteps] = (jordan_estimate == source)
+        # jordan_estimate = estimation.jordan_centrality(who_infected)
+        # jordan_correct[timesteps] = (jordan_estimate == source)
+        jordan_correct[timesteps] = 0
 
         # Rumor centrality estimate
-        rumor_estimate = estimation.rumor_centrality(who_infected)
-        rumor_correct[timesteps] = (rumor_estimate == source)
+        # rumor_estimate = estimation.rumor_centrality(who_infected)
+        # rumor_correct[timesteps] = (rumor_estimate == source)
+        rumor_correct[timesteps] = 0
         
         # ML estimate
-        ml_estimate, likelihoods = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, source)
-        ml_correct[timesteps] = (ml_estimate == source)
+        ml_leaf, likelihoods, ml_distance = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_from_source, source)
+        ml_correct[timesteps] = (ml_leaf == source)
+        ml_distances[timesteps] = ml_distance
         
-        results = (jordan_correct, rumor_correct, ml_correct)
+        results = (jordan_correct, rumor_correct, ml_correct, ml_distances)
         
         timesteps += 1
     return num_infected, infection_pattern, who_infected, results
@@ -545,7 +565,7 @@ def pass_branch_message_randtree(source, recipient, degrees, degrees_rv, who_inf
         degrees,who_infected, known_degrees = utilities.infect_nodes_randtree(recipient, neighbors, degrees, degrees_rv, who_infected, known_degrees)
     return degrees, who_infected, known_degrees
     
-def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected):
+def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected, dist_from_source):
     # pass an instruction to branch from the source to the leaves
     # Inputs
     #       source:             source of the infection
@@ -567,12 +587,14 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
     
     for neighbor in neighbors:
         leaf = False
-        infection_pattern, who_infected =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected)
+        infection_pattern, who_infected, dist_from_source =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
             
     if leaf:
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)
         infection_pattern,who_infected = utilities.infect_nodes(recipient, neighbors, infection_pattern, who_infected)
-    return infection_pattern, who_infected
+        for neighbor in neighbors:
+            dist_from_source[neighbor] = dist_from_source[recipient] + 1
+    return infection_pattern, who_infected, dist_from_source
     

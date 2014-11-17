@@ -1,11 +1,9 @@
 import buildGraph
-import infectionModels
 import random
 import scipy.io as io
 import numpy as np
-import utilities
-import runExperiments
-import sys
+import utilities, runExperiments, infectionModels
+import sys, time
 from sys import platform as _platform
   
 if __name__ == "__main__":
@@ -34,15 +32,27 @@ if __name__ == "__main__":
     min_degree = 3;
     max_time = 10
     max_infection = 3
-    p_fb, num_infected, pd_jordan, pd_rumor, pd_ml = runExperiments.runDataset(filename, min_degree, trials, max_time, max_infection, 10000)
+    
+    start = time.clock()
+    p_fb, num_infected, results = runExperiments.runDataset(filename, min_degree, trials, max_time, max_infection, 10000)
+    print('Experiment took ', time.clock() - start, ' seconds.')
+    pd_jordan, pd_rumor, pd_ml_leaf, ml_leaf_dists = results
     print('Facebook result: ',p_fb,num_infected)
     print('Accuracy using Jordan centrality: ',pd_jordan)
     print('Accuracy using rumor centrality: ',pd_rumor)
-    print('Accuracy using ML: ',pd_ml)
+    print('Accuracy using ML leaf: ',pd_ml_leaf)
+    print('Average distances of the ML estimate: ', ml_leaf_dists)
+    
     
     if write_results:
-        if dataset == 'fb':
-            filename = 'pd_facebook'
+        if _platform == "linux" or _platform == "linux2":
+            # linux
+            prefix = 'results/'
+        elif _platform == "win32":
+            # windows
+            prefix = 'results\\'
+        if database == 'fb':
+            filename = prefix + 'pd_facebook'
         else:
-            filename = 'pd_power_grid'
-        io.savemat('pd',{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'time':np.array([i for i in range(max_time)])})
+            filename = prefix + 'pd_power_grid'
+        io.savemat(filename,{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'pd_ml_leaf':np.array(pd_ml_leaf), 'time':np.array([i for i in range(max_time)]), 'num_infected':np.array(num_infected), 'ml_leaf_dists':np.array(ml_leaf_dists)})

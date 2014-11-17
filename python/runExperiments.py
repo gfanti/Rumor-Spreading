@@ -31,6 +31,9 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
     pd_jordan = [0 for i in range(max_time)]
     pd_rumor = [0 for i in range(max_time)]
     pd_ml = [0 for i in range(max_time)]
+    avg_num_infected = [0 for i in range(max_time)]
+    # avg_leaf_dists = [[0,0] for i in range(max_time)]
+    avg_leaf_dists = [0 for i in range(max_time)]
 
     for trial in range(trials):
         # if trial % 20 == 0:
@@ -44,22 +47,30 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
         else:
             num_infected, infection_pattern, who_infected, results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
             # unpack the results
-            jordan_correct, rumor_correct, ml_correct = results
+            jordan_correct, rumor_correct, ml_leaf_correct, ml_leaf_dists = results
+            print('dists', ml_leaf_dists)
             
             pd_jordan = [i+j for (i,j) in zip(pd_jordan, jordan_correct)]
             pd_rumor = [i+j for (i,j) in zip(pd_rumor, rumor_correct)]
-            pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
+            pd_ml_leaf = [i+j for (i,j) in zip(pd_ml, ml_leaf_correct)]
+            # avg_leaf_dists = [[k+m for (k,m) in zip(i,j)] for (i,j) in zip(ml_leaf_dists, avg_leaf_dists)]
+            avg_leaf_dists = [i+j for (i,j) in zip(ml_leaf_dists, avg_leaf_dists)]
             
             # write the infected subgraph to file
-            filename = 'infected_subgraph_'+str(trial)
+            # filename = 'infected_subgraph_'+str(trial)
             # exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
             
-        p += float(num_infected) / num_true_nodes
+        p += float(num_infected[-1]) / num_true_nodes
+        avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
     p = p / trials
     pd_jordan = [float(i)/trials for i in pd_jordan]
     pd_rumor = [float(i)/trials for i in pd_rumor]
-    pd_ml = [float(i) / trials for i in pd_ml]
-    return p, num_infected, pd_jordan, pd_rumor, pd_ml
+    pd_ml_leaf = [float(i) / trials for i in pd_ml_leaf]
+    avg_num_infected = [ float(i) / trials for i in avg_num_infected]
+    # avg_leaf_dists = [[float(k) / trials for k in i] for i in avg_leaf_dists]
+    avg_leaf_dists = [float(i) / trials for i in avg_leaf_dists]
+    results = (pd_jordan, pd_rumor, pd_ml_leaf, avg_leaf_dists)
+    return p, avg_num_infected, results
     
 '''Run a random tree'''    
 def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[]):
