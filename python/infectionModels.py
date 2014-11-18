@@ -346,8 +346,8 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
     virtual_source_candidate = virtual_source
     
     infection_pattern = [0]*num_nodes
-    dist_from_source = [-1]*num_nodes
     infection_pattern[source] = 1
+    dist_from_source = [-1]*num_nodes
     dist_from_source[source] = 0
     who_infected = [[] for i in range(num_nodes)]
     jordan_correct = [0 for i in range(max_time)]
@@ -369,7 +369,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             previous_vs = virtual_source
             
             # infect twice in one direction, always
-            infection_pattern, who_infected = utilities.infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected)
+            infection_pattern, who_infected, dist_from_source = utilities.infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected, dist_from_source)
             virtual_source_candidate = virtual_source_candidate[0]
             infection_pattern, who_infected, dist_from_source = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
             virtual_source = virtual_source_candidate
@@ -377,7 +377,8 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
-            if (len(current_neighbors) < 2) or (random.random() < utilities.compute_alpha(m,timesteps,max_infection)):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            # if (len(current_neighbors) < 2) or (random.random() < utilities.compute_alpha(m,timesteps,max_infection)):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            if (len(current_neighbors) < 2):
                 # if there is nowhere for the virtual source to move, keep it where it is
                 if len(current_neighbors) < 1:
                     blocked = True
@@ -425,11 +426,11 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         
         # ML estimate
         ml_leaf, likelihoods, ml_distance = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_from_source, source)
+        # utilities.print_adjacency(who_infected, dist_from_source)
         ml_correct[timesteps] = (ml_leaf == source)
         ml_distances[timesteps] = ml_distance
         
         results = (jordan_correct, rumor_correct, ml_correct, ml_distances)
-        
         timesteps += 1
     return num_infected, infection_pattern, who_infected, results
     
@@ -593,8 +594,6 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)
-        infection_pattern,who_infected = utilities.infect_nodes(recipient, neighbors, infection_pattern, who_infected)
-        for neighbor in neighbors:
-            dist_from_source[neighbor] = dist_from_source[recipient] + 1
+        infection_pattern,who_infected, dist_from_source = utilities.infect_nodes(recipient, neighbors, infection_pattern, who_infected, dist_from_source)
     return infection_pattern, who_infected, dist_from_source
     

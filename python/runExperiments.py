@@ -30,7 +30,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
     p = 0
     pd_jordan = [0 for i in range(max_time)]
     pd_rumor = [0 for i in range(max_time)]
-    pd_ml = [0 for i in range(max_time)]
+    pd_ml_leaf = [0 for i in range(max_time)]
     avg_num_infected = [0 for i in range(max_time)]
     # avg_leaf_dists = [[0,0] for i in range(max_time)]
     avg_leaf_dists = [0 for i in range(max_time)]
@@ -52,7 +52,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
             
             pd_jordan = [i+j for (i,j) in zip(pd_jordan, jordan_correct)]
             pd_rumor = [i+j for (i,j) in zip(pd_rumor, rumor_correct)]
-            pd_ml_leaf = [i+j for (i,j) in zip(pd_ml, ml_leaf_correct)]
+            pd_ml_leaf = [i+j for (i,j) in zip(pd_ml_leaf, ml_leaf_correct)]
             # avg_leaf_dists = [[k+m for (k,m) in zip(i,j)] for (i,j) in zip(ml_leaf_dists, avg_leaf_dists)]
             avg_leaf_dists = [i+j for (i,j) in zip(ml_leaf_dists, avg_leaf_dists)]
             

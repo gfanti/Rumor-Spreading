@@ -12,6 +12,7 @@ def parse_args(args):
     parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
     parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
     parser.add_argument("-db", '--database', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'fb')
+    parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
     args = parser.parse_args()
     
     if args.trials:
@@ -29,6 +30,9 @@ def parse_args(args):
     if args.database: 
         database = args.database
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
+        if args.run:
+            run = args.run
+            return (trials, write_results, database, run)
         return(trials, write_results, database)
 
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
@@ -113,7 +117,7 @@ def infect_nodes_infinite_tree(node, num_children, adjacency):
     adjacency = adjacency + [[node] for i in range(num_children)]
     return adjacency
     
-def infect_nodes(node, children, infection_pattern, who_infected):
+def infect_nodes(node, children, infection_pattern, who_infected, dist_from_source = []):
     '''
     Infects the nodes listed in children
     Inputs
@@ -132,7 +136,9 @@ def infect_nodes(node, children, infection_pattern, who_infected):
     for child in children:
         infection_pattern[child] = 1
         who_infected[child] += [node]
-    return infection_pattern, who_infected
+        if dist_from_source:
+            dist_from_source[child] = dist_from_source[node] + 1
+    return infection_pattern, who_infected, dist_from_source
     
 def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
     '''
