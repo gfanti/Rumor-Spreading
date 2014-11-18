@@ -40,8 +40,6 @@ def rumor_centrality(who_infected):
     max_down_ind = [i for i, j in enumerate(down_messages) if j == max_down]
     return max_down_ind[random.randrange(0,len(max_down_ind),1)]
 
-
-
 def jordan_centrality(adjacency):
     # computes the estimate of the source based on jordan centrality
     num_nodes = len(adjacency)
@@ -162,6 +160,12 @@ def max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_
         if (len(who_infected[i]) == 1) and len(paths[i]) == max_length:
             vs_path = [k for k in paths[i]]
             likelihoods[i] = compute_graph_likelihood(i, who_infected, adjacency, vs_path, max_infection)
+            if likelihoods[i] == float('-inf'):
+                print('negative inf', i,vs_path, adjacency[i])
+                print('likelihood: ',math.log(1.0/len(adjacency[i])))
+            # else:
+                # print('not inf', i,vs_path)
+                
     max_likelihood = max(likelihoods)
     indices = [i for i, x in enumerate(likelihoods) if x == max_likelihood]
     ml_estimate = random.choice(indices)
@@ -187,6 +191,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     # Outputs
     #       likelihood          likelihood of the graph given source 
     
+    vs_path.pop()
     nodes = range(len(who_infected))
     new_infection_pattern = [0 for i in nodes]
     new_infection_pattern[source] = 1
@@ -199,7 +204,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     likelihood = math.log(1.0/len(adjacency[source]))
     
     # get the new vs
-    if not vs_path:
+    if not vs_path == 1:
         return likelihood
     current_vs = vs_path.pop(0)
     new_infection_pattern, new_who_infected, tmp = utilities.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)

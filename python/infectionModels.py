@@ -426,7 +426,13 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         
         # ML estimate
         ml_leaf, likelihoods, ml_distance = estimation.max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_from_source, source)
-        # utilities.print_adjacency(who_infected, dist_from_source)
+        if ml_distance == -1:
+            utilities.print_adjacency(who_infected, dist_from_source)
+            print('source: ', source)
+            print('estimate: ', ml_leaf)
+            print(adjacency[ml_leaf])
+            print('who_inf: ', who_infected[ml_leaf])
+            print('likelihood: ', likelihoods[ml_leaf])
         ml_correct[timesteps] = (ml_leaf == source)
         ml_distances[timesteps] = ml_distance
         
