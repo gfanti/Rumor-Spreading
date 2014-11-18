@@ -30,7 +30,7 @@ if __name__ == "__main__":
         filename = prefix + 'out.opsahl-powergrid'
     
     min_degree = 3;
-    max_time = 1
+    max_time = 10
     max_infection = 3
     
     start = time.clock()
