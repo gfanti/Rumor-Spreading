@@ -55,5 +55,5 @@ if __name__ == "__main__":
             filename = prefix + 'pd_facebook'
         else:
             filename = prefix + 'pd_power_grid'
-        filename += '_' + str(run)
+        filename += '_do3_' + str(run)
         io.savemat(filename,{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'pd_ml_leaf':np.array(pd_ml_leaf), 'time':np.array([i for i in range(max_time)]), 'num_infected':np.array(num_infected), 'ml_leaf_dists':np.array(ml_leaf_dists)})
