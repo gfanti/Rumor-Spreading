@@ -32,9 +32,10 @@ def parse_args(args):
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
         if args.run:
             run = args.run
-            return (trials, write_results, database, run)
-        return(trials, write_results, database)
-
+        else:
+            run = 0
+        return (trials, write_results, database, run)
+        
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
     return(trials, write_results, alt)
 

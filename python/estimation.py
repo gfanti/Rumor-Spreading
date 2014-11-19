@@ -191,10 +191,17 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     # Outputs
     #       likelihood          likelihood of the graph given source 
     
+    if len(vs_path) == 1:
+        print('The vs path is 1 hop!', source, vs_path)
+        utilities.print_adjacency(who_infected, adjacency)
+        return float('-inf')
+    
     vs_path.pop()
     nodes = range(len(who_infected))
     new_infection_pattern = [0 for i in nodes]
     new_infection_pattern[source] = 1
+    
+    
     
     new_who_infected = [[] for i in nodes]
 
