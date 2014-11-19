@@ -30,7 +30,7 @@ if __name__ == "__main__":
         filename = prefix + 'out.opsahl-powergrid'
     
     min_degree = 3;
-    max_time = 1
+    max_time = 10
     max_infection = 3
     
     start = time.clock()
@@ -55,5 +55,5 @@ if __name__ == "__main__":
             filename = prefix + 'pd_facebook'
         else:
             filename = prefix + 'pd_power_grid'
-        filename += '_do3_' + str(run)
+        filename += '_' + str(run)
         io.savemat(filename,{'pd_jordan':np.array(pd_jordan),'pd_rumor':np.array(pd_rumor), 'pd_ml_leaf':np.array(pd_ml_leaf), 'time':np.array([i for i in range(max_time)]), 'num_infected':np.array(num_infected), 'ml_leaf_dists':np.array(ml_leaf_dists)})

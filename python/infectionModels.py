@@ -377,8 +377,8 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
-            if (len(current_neighbors) < 2) or (random.random() < utilities.compute_alpha(m,timesteps,max_infection)):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
-            # if (len(current_neighbors) < 2):
+            # if (len(current_neighbors) < 2) or (random.random() < utilities.compute_alpha(m,timesteps,max_infection)):     # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            if (len(current_neighbors) < 2):
                 # if there is nowhere for the virtual source to move, keep it where it is
                 if len(current_neighbors) < 1:
                     blocked = True
