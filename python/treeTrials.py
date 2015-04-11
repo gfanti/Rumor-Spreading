@@ -11,9 +11,12 @@ if __name__ == "__main__":
     trials, write_results, alt = utilities.parse_args(sys.argv)
     
     # Irregular infinite graph
-    xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
-    pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
-    max_times = [5, 4, 4]
+    # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
+    # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
+    # max_times = [5, 4, 4]
+    xks = [np.arange(3,5) for i in range(9)]
+    pks = [(0.1*i, 1-0.1*i) for i in range(1,10)]
+    max_times = [5 for i in range(9)]
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
     # max_times = [10]
@@ -51,8 +54,9 @@ if __name__ == "__main__":
 
             if write_results:
                 xk_str = [str(i) for i in xk]
+                pk_str = [str(round(i,1)) for i in pk]
                 if alt:
-                    filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + '.mat'
+                    filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + '.mat'
                 else:
-                    filename = 'results/irregular_tree_results_' + "_".join(xk_str) + '.mat'
+                    filename = 'results/irregular_tree_results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + '.mat'
                 io.savemat(filename,{'pd_ml':np.array(pd_ml), 'num_infected':np.array(num_infected)})
