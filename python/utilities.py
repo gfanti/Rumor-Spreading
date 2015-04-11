@@ -11,7 +11,7 @@ def parse_args(args):
     parser.add_argument("-t", '--trials', help = "Number of trials to run (default: 1)", type = int, default = 1)
     parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
     parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
-    parser.add_argument("-db", '--database', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'fb')
+    parser.add_argument("--db", nargs = '?', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'none')
     parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
     args = parser.parse_args()
     
@@ -27,8 +27,8 @@ def parse_args(args):
         alt = bool(args.alt)
     else:
         alt = False # Use the alternative method of spreading virtual sources?
-    if args.database: 
-        database = args.database
+    if not (args.db == 'none'):
+        database = args.db
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
         if args.run:
             run = args.run
@@ -38,7 +38,6 @@ def parse_args(args):
         
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
     return(trials, write_results, alt)
-
 
 def nCk(n, k):
     '''
@@ -100,7 +99,7 @@ def N_nodes(T,d):
     Compute the number of nodes that appear in a graph at time T in a d-regular graph
     '''
     return N(T,d) + 1
-    
+
 def infect_nodes_infinite_tree(node, num_children, adjacency):
     '''
     Infect nodes in an infinite tree given the adjacency matrix
@@ -117,7 +116,7 @@ def infect_nodes_infinite_tree(node, num_children, adjacency):
     adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
     adjacency = adjacency + [[node] for i in range(num_children)]
     return adjacency
-    
+
 def infect_nodes(node, children, infection_pattern, who_infected, dist_from_source = []):
     '''
     Infects the nodes listed in children

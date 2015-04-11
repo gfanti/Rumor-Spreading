@@ -9,7 +9,8 @@ from sys import platform as _platform
 if __name__ == "__main__":
 
     # Parse the arguments
-    trials, write_results, database, run = utilities.parse_args(sys.argv)
+    # trials, write_results, database, run = utilities.parse_args(sys.argv)
+    trials, write_results, database = utilities.parse_args(sys.argv)
 
     # Dataset options:
     # 1: Facebook
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     
     min_degree = 3;
     max_time = 10
-    max_infection = 3
+    max_infection = -1
     
     start = time.clock()
     p_fb, num_infected, results = runExperiments.runDataset(filename, min_degree, trials, max_time, max_infection, 10000)

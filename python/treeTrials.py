@@ -11,10 +11,15 @@ if __name__ == "__main__":
     trials, write_results, alt = utilities.parse_args(sys.argv)
     
     # Irregular infinite graph
-    xks = [np.arange(2,4), np.arange(3,5), np.arange(2,5)]
-    pks = [(0.5, 0.5), (0.5, 0.5), (0.5, 0.25, 0.5)]
-    max_times = [13, 7, 10]
+    xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
+    pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
+    max_times = [5, 4, 4]
+    # xks = [np.arange(2,3)]
+    # pks = [(1.0)]
+    # max_times = [10]
+    # additional_time = 30
     max_infection = 2
+    additional_time = 0
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
         print('Checking xks = ',xk)
@@ -34,10 +39,20 @@ if __name__ == "__main__":
                 num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 1)[:2]
             # Use regular spreading
             else:
-                num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0)[:2]
-            print(pd_ml)
+                if additional_time:
+                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0,
+                                                                      additional_time = additional_time)[:2]
+                else:
+                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0)[:2]
+                pd_ml, additional_pd = results
+            print("pd ML: ", pd_ml)
+            print("additional pd: ", additional_pd)
+            print('num_infected: ', num_infected)
 
             if write_results:
                 xk_str = [str(i) for i in xk]
-                filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + '.mat'
+                if alt:
+                    filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + '.mat'
+                else:
+                    filename = 'results/irregular_tree_results_' + "_".join(xk_str) + '.mat'
                 io.savemat(filename,{'pd_ml':np.array(pd_ml), 'num_infected':np.array(num_infected)})

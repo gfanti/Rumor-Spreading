@@ -43,7 +43,8 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
             if len(adjacency[source]) > 0:
                 break
         if max_infection == -1:      # i.e. we're running the deterministic version
-            num_infected, infection_pattern = infectionModels.infect_nodes_deterministic(source,adjacency)
+            num_infected, infection_pattern = infectionModels.infect_nodes_deterministic_reinfect(source,adjacency)
+            print('num nodes',sum([1 for r in adjacency if len(r)>0]))
         else:
             num_infected, infection_pattern, who_infected, results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
             # unpack the results
@@ -59,7 +60,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
             # write the infected subgraph to file
             # filename = 'infected_subgraph_'+str(trial)
             # exportGraph.export_gexf(filename,who_infected,source,infection_pattern,adjacency)
-            
+        print("infected", num_infected)
         p += float(num_infected[-1]) / num_true_nodes
         avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
     p = p / trials
@@ -73,7 +74,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
     return p, avg_num_infected, results
     
 '''Run a random tree'''    
-def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[]):
+def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0):
     ''' Run dataset runs a spreading algorithm over a dataset. 
     
     Arguments:    
@@ -94,6 +95,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.'''
     
     pd_ml = [0 for i in range(max_time)] # Maximum likelihood
+    additional_pd_mean = [0 for i in range(additional_time)] # Pd from additional measurements
     pd_rc = [0 for i in range(max_time)] # Rumor centrality
     pd_jc = [0 for i in range(max_time)] # Jordan centrality
     pd_rand_leaf = [0 for i in range(max_time)]
@@ -103,16 +105,23 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
         if trial % 50 == 0:
             print('Trial ',trial, ' / ',trials-1)
         source = 0
+        # Infect nodes with adaptive diffusion over an irregular tree, and take multiple snapshots
         if method == 0:
-            infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, degrees_rv)
-            num_infected, infection_pattern, who_infected = infection_details
+            infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
+                                                                                                 degrees_rv, additional_time = additional_time)
+            num_infected, infection_pattern, who_infected, additional_hops = infection_details
+            # print(additional_hops)
+            additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
+        # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
         elif method == 1:
             infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, degrees_rv, True)
             num_infected, infection_pattern, who_infected = infection_details
+        # Infect nodes with adaptive diffusion over an irregular tree whose structure is pre-determined
         elif method == 2:
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
             num_infected, infection_pattern, who_infected = infection_details
             pd_rand_leaf = [i+j for (i,j) in zip(pd_rand_leaf, rand_leaf_correct)]
+        # Infect nodes with adaptive diffusion over a line
         elif method == 3:
             infection_details, results = infectionModels.infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv)
             num_infected, who_infected = infection_details
@@ -128,7 +137,10 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     pd_rand_leaf = [float(i) / trials for i in pd_rand_leaf]
     avg_num_infected = [ float(i) / trials for i in avg_num_infected]
     
-    if method <= 1:
+    if method == 0:
+        additional_pd_mean = [i/trials for i in additional_pd_mean]
+        results = (pd_ml, additional_pd_mean)
+    elif method == 1:
         results = (pd_ml)
     elif method == 2:
         results = (pd_ml, pd_rand_leaf)

@@ -6,9 +6,9 @@ import numpy as np
 import utilities
 # import cProfile
 
-# Semi-distributed adaptive diffusion over regular trees
+#Semi-distributed adaptive diffusion over regular trees (uses two timesteps)
 def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
-    '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
+    '''infect_nodes_adaptive_irregular_tree runs the spreading model over a regular
     tree.
     
     Arguments:
@@ -71,14 +71,15 @@ def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
 
 # Semi-distributed adaptive diffusion over irregular trees
 def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
-                                              degrees_rv, alt = False):
+                                              degrees_rv, alt = False,
+                                              additional_time = 0):
     '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
     tree.
     
     Arguments:
         source: The ID of the source node (usually 0)
         max_time: The maximum amount of timesteps to run the algorithm
-        max_infection: The maximum number of nodes an infected node will infect in any timestep
+        max_infection: Defines the (nominal degree-1) that is assumed in order to choose alpha
         degrees_rv: A random variable that describes the graph degree
         alt: Tells whether you would like to use the alternative spreading (weights virtual
             sources by their degree)
@@ -102,7 +103,6 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
     
     who_infected = [[]]
     degrees = degrees_rv.rvs(size=1).tolist()
-    
     while timesteps < max_time:
     
             
@@ -130,14 +130,19 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                 if alt: # Weight new virtual sources by their degree
                     current_neighbors.remove(previous_vs)
                     weights = [degrees[i] for i in current_neighbors]
+                    # print('degree', degrees[virtual_source])
+                    # print(weights)
                     weights = [i/sum(weights) for i in weights]
+                    # print(weights)
                     virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
                     virtual_source_candidate = virtual_source_rv.rvs(size=1)
+                    # print('alt: ', timesteps, degrees[virtual_source_candidate])
                 else: # Choose uniformly between all virtual sources
                     virtual_source_candidate = [previous_vs]
                     while virtual_source_candidate[0] == previous_vs:
                         virtual_source_candidate, current_neighbors, new_vs_likelihood = pick_random_elements(current_neighbors,1)
                     virtual_source_candidate = virtual_source_candidate[0]
+                    # print('regular: ', timesteps, degrees[virtual_source_candidate])
                 previous_vs = virtual_source
                 
                 # the virtual source moves one more hop away from the true source
@@ -161,9 +166,21 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         tot_num_infected[timesteps] = num_infected
         
         timesteps += 1
-        
-    infection_details = (tot_num_infected, infection_pattern, who_infected)
-    return infection_details, ml_correct
+        # print('num infected', num_infected)
+    
+    original_m = m
+    additional_hops = []
+    additional_pd = []
+    for i in range(additional_time):
+        hopped = (random.random() < utilities.compute_alpha(m, timesteps, max_infection + 1))
+        additional_hops.append(hopped)
+        additional_pd.append(estimation.pd_additional_time(max_time, num_infected, additional_hops, max_infection + 1, original_m))
+        if hopped:
+            m += 1
+        timesteps += 1
+    
+    infection_details = (tot_num_infected, infection_pattern, who_infected, additional_hops)
+    return infection_details, ml_correct, additional_pd
 
 # Semi-distributed adaptive diffusion over predefined random tree    
 def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees):
@@ -258,7 +275,7 @@ def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection
 
 # Fully distributed adaptive diffusion spreading algorithm for a line, applied to random trees
 def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
-    
+
     timesteps = 0
     
     # initially the virtual source and the true source are the same
@@ -445,53 +462,177 @@ def prob_G_given_m_and_T(T,m):
         prob = prob * utilities.compute_alpha(i,T,d)
     return prob
 
+    
 # Pramod's deterministic tree-shaped spreading algorithm.
-def infect_nodes_deterministic(source, adjacency):
+def infect_nodes_deterministic(source, adjacency, greedy = False):
     num_nodes = len(adjacency)
-    num_infected = 0;
+    num_infected = [];
     infection_pattern = [0]*num_nodes;
-    infection_pattern[source] = 1;
+    infection_pattern[source] = 2;
+    infection_height = [0]*num_nodes;
+    infection_height[source] = 0;
     
     
     old_infecting_nodes = [source]
     new_infecting_nodes = []
     
     blocked = False
-    while num_infected < num_nodes:
-        
+    infected_nodes = 1
+    while infected_nodes < num_nodes:
+        print('old infecting', old_infecting_nodes)
         for node in old_infecting_nodes:
             current_neighbors = [k for k in adjacency[node] if infection_pattern[k]==0]
-            if len(current_neighbors) < 2:
-                blocked = True
-                break
+            num_neighbors = len(current_neighbors)
+            # if len(current_neighbors) < 1:
+                # blocked = True
+                # break
             # if you're an up node, create an up and a down node
             if infection_pattern[node] == 1:
-                up_elements, current_neighbors = pick_random_elements(current_neighbors,1)
+                if num_neighbors < 1:
+                    print("Blocked. Neighbors are: ", adjacency[node])
+                    blocked = True
+                    break
+                if greedy:
+                    up_elements, current_neighbors = pick_random_elements_greedy(current_neighbors,1,adjacency,infection_pattern,node)[:2]
+                else:
+                    up_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
                 for item in up_elements:
                     infection_pattern[item] = 1
-                down_elements, current_neighbors = pick_random_elements(current_neighbors,1)
-                for item in down_elements:
-                    infection_pattern[item] = -1
+                    infection_height[item] = infection_height[node] + 1
+                down_elements = []
+                if num_neighbors > 1:
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                    for item in down_elements:
+                        infection_pattern[item] = -1
+                        infection_height[item] = infection_height[node] - 1
+                    infected_nodes += 2
+                else:
+                    infected_nodes += 1
                 new_infecting_nodes = new_infecting_nodes + up_elements + down_elements
             # if you're a down node, create two down nodes
-            elif infection_pattern[node] == -1:
-                down_elements, current_neighbors = pick_random_elements(current_neighbors,2)
+            elif (infection_pattern[node] == -1) and (infection_height[node] > 0):
+                if num_neighbors < 3:
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,num_neighbors)[:2]
+                    infected_nodes += num_neighbors
+                else: 
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,2)[:2]
+                    infected_nodes += 2
                 for item in down_elements:
                     infection_pattern[item] = -1
+                    infection_height[item] = infection_height[node] - 1
                 new_infecting_nodes = new_infecting_nodes + down_elements
-            # otherwise, something's wrong
-            else:
-                print('ERROR')
-                
-            num_infected += 2
+            # if you're the true source, just infect one up node
+            elif infection_pattern[node]==2:
+                if num_neighbors < 1:
+                    print("Blocked. Neighbors are: ", adjacency[node])
+                    blocked = True
+                    break
+                up_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                for item in up_elements:
+                    infection_pattern[item] = 1
+                    infection_height[item] = 1
+                infected_nodes += 1
+                new_infecting_nodes = new_infecting_nodes + up_elements
+        num_infected = num_infected + [infected_nodes]
         if blocked:
             break
             
         # swap the arrays
+        print('new infecting', new_infecting_nodes)
+        print('infection status: ', [infection_pattern[rr] for rr in new_infecting_nodes])
+        print('infection height: ', [infection_height[rr] for rr in new_infecting_nodes])
         old_infecting_nodes, new_infecting_nodes = new_infecting_nodes, old_infecting_nodes
-    
+        new_infecting_nodes = []
+    print("Infected ", infected_nodes, " / ", num_nodes, " total nodes.")
     return num_infected, infection_pattern
 
+# Pramod's deterministic tree-shaped spreading algorithm.
+def infect_nodes_deterministic_reinfect(source, adjacency):
+    num_nodes = len(adjacency)
+    num_infected = [];
+    infection_pattern = [0]*num_nodes;
+    infection_pattern[source] = 2;
+    infection_height = [0]*num_nodes;
+    infection_height[source] = 0;
+    
+    
+    old_infecting_nodes = [source]
+    new_infecting_nodes = []
+    
+    blocked = False
+    infected_nodes = 1
+    counter = 0
+    while (infected_nodes < num_nodes) and (counter < 30):
+        counter += 1
+        print(counter)
+        # print('old infecting', old_infecting_nodes)
+        for node in old_infecting_nodes:
+            current_neighbors = [k for k in adjacency[node] if ((infection_height[k] < 1) or (infection_height[k] != max(infection_height)))
+                                                            and (k not in old_infecting_nodes)]
+            num_neighbors = len(current_neighbors)
+            if num_neighbors < 1:
+                print("Blocked. Neighbors are: ", adjacency[node], [(infection_pattern[k],infection_height[k]) for k in adjacency[node]])
+                blocked = True
+                break
+            # if you're an up node, create an up and a down node
+            if infection_pattern[node] == 1:
+                up_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                
+                # print('up_elements', up_elements)
+                for item in up_elements:
+                    if (infection_pattern[item] == 0):
+                        infected_nodes += 1
+                    infection_pattern[item] = 1
+                    # print("ones!")
+                    infection_height[item] = infection_height[node] + 1
+                down_elements = []
+                if num_neighbors > 1:
+                    # down_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                    for item in down_elements:
+                        if (infection_pattern[item] == 0):
+                            infected_nodes += 1
+                        infection_pattern[item] = -1
+                        infection_height[item] = infection_height[node] - 1
+                new_infecting_nodes = new_infecting_nodes + up_elements + down_elements
+            # if you're a down node, create two down nodes
+            elif (infection_pattern[node] == -1) and (infection_height[node] > 0):
+                if num_neighbors < 2:
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                else: 
+                    down_elements, current_neighbors = pick_random_elements(current_neighbors,2)[:2]
+                for item in down_elements:
+                    if (infection_pattern[item] == 0):
+                        infected_nodes += 1
+                    infection_pattern[item] = -1
+                    infection_height[item] = infection_height[node] - 1
+                new_infecting_nodes = new_infecting_nodes + down_elements
+            # if you're the true source, just infect one up node
+            elif infection_pattern[node]==2:
+                if num_neighbors < 1:
+                    print("Blocked. Neighbors are: ", adjacency[node])
+                    blocked = True
+                    break
+                up_elements, current_neighbors = pick_random_elements(current_neighbors,1)[:2]
+                for item in up_elements:
+                    if (infection_pattern[item] == 0):
+                        infected_nodes += 1
+                    infection_pattern[item] = 1
+                    infection_height[item] = 1
+                new_infecting_nodes = new_infecting_nodes + up_elements
+        num_infected = num_infected + [infected_nodes]
+        if blocked:
+            break
+            
+        # swap the arrays
+        # print('new infecting', new_infecting_nodes)
+        # print('infection status: ', [infection_pattern[rr] for rr in new_infecting_nodes])
+        # print('infection height: ', [infection_height[rr] for rr in new_infecting_nodes])
+        old_infecting_nodes, new_infecting_nodes = new_infecting_nodes, old_infecting_nodes
+        new_infecting_nodes = []
+    print("Infected ", infected_nodes, " / ", num_nodes, " total nodes.")
+    return num_infected, infection_pattern
+    
 def pick_random_elements(neighbors,num_neighbors):
     # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list
     # Inputs
@@ -513,7 +654,50 @@ def pick_random_elements(neighbors,num_neighbors):
         likelihood = 1
     random_elements.sort()
     return random_elements, neighbors, likelihood
-  
+
+def pick_random_elements_greedy(neighbors,num_neighbors,adjacency,infection_pattern,node):
+    # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list.
+    # This time, pick a neighbor weighted by the number of uninfected neighbors.
+    # Inputs
+    #       neighbors:          the list of neighbors
+    #       num_neighbors:      the number of elements to pick from the list
+    #
+    # Outputs
+    #       random_elements     the neighbors chosen
+    #       neighbors           the updated neighbors, without random_elements
+    
+    random_elements = []
+    # Find which neighbor has the fewest infected friends, and give it the up chain
+    surroundedness = []
+    for neighbor in neighbors:
+        infected_neighbors = sum([1 for k in adjacency[neighbor] if ((k!=node) and (infection_pattern[k]==0))])# / len(adjacency[neighbor])
+        # surroundedness = surroundedness + [infected_neighbors]
+        mutual_friends = sum([1 for k in adjacency[neighbor] if ((k!=node) and (k in neighbors))]) #/ len(adjacency[neighbor])
+        surroundedness = surroundedness + [mutual_friends * max(infected_neighbors,1)]
+    # sorted_neighbors = [x for (y,x) in sorted(zip(surroundedness,neighbors))]
+    
+    print("Sorted neighbors", sorted(zip(surroundedness,neighbors)))
+    sorted_neighbors = [x for (y,x) in sorted(zip(surroundedness,neighbors))]
+    if sum(surroundedness) == 0:
+        total = 1
+    else:
+        total = sum(surroundedness)
+    surroundedness = [1 - i/float(total) for i in surroundedness]
+    virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(neighbors, surroundedness))
+        
+    for i in range(num_neighbors):
+        element = virtual_source_rv.rvs(size=1)
+        neighbors.remove(element)
+        # element = sorted_neighbors.pop()
+        random_elements.append(element)
+    if neighbors:
+        likelihood = float(num_neighbors) / len(neighbors)
+    else:
+        likelihood = 1
+    random_elements.sort()
+    # return random_elements, sorted_neighbors, likelihood
+    return random_elements, neighbors, likelihood
+    
 def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
     # pass an instruction to branch from the source to the leaves overn an infinite tree
     # Inputs
