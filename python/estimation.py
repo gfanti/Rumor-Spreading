@@ -388,8 +388,8 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
         messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
     else:
         messages = ml_message_passing_irregular_trees_alt(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source, degrees_rv)
-    print('MESSAGES ARE : ', messages)
-    print('DEGREES ARE : ', infected_nodes_degree)
+    # print('MESSAGES ARE : ', messages)
+    # print('DEGREES ARE : ', infected_nodes_degree)
     
     # the likelihood of the virtual source is equal to zero
     # print('messages', messages)
