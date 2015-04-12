@@ -102,7 +102,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     avg_num_infected = [0 for i in range(max_time)]
     
     for trial in range(trials):
-        if trial % 50 == 0:
+        if trial % 200 == 0:
             print('Trial ',trial, ' / ',trials-1)
         source = 0
         # Infect nodes with adaptive diffusion over an irregular tree, and take multiple snapshots

@@ -15,18 +15,20 @@ if __name__ == "__main__":
     # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
     # max_times = [5, 4, 4]
     xks = [np.arange(3,5) for i in range(9)]
-    pks = [(0.1*i, 1-0.1*i) for i in range(1,10)]
+    pks = [(0.2*i, 1-0.2*i) for i in range(1,4)]
     max_times = [5 for i in range(9)]
+    
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
     # max_times = [10]
     # additional_time = 30
-    max_infection = 2
+    max_infection = 2.5 #min(xks) - 1
     additional_time = 0
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
         print('Checking xks = ',xk)
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
+        max_infection = degrees_rv.mean() - 1
         
         # Check if the tree is regular
         if isinstance(pk, list) == 1:
@@ -46,6 +48,7 @@ if __name__ == "__main__":
                     num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0,
                                                                       additional_time = additional_time)[:2]
                 else:
+                    print(max_infection, degrees_rv)
                     num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0)[:2]
                 pd_ml, additional_pd = results
             print("pd ML: ", pd_ml)
