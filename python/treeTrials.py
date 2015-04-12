@@ -14,21 +14,22 @@ if __name__ == "__main__":
     # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
     # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
     # max_times = [5, 4, 4]
-    xks = [np.arange(3,5) for i in range(1)]
-    pks = [(0.2*i, 1-0.2*i) for i in range(4,5)]
-    max_times = [5 for i in range(1)]
+    xks = [np.arange(3,5) for i in range(4)]
+    pks = [(0.5, 0.5) for i in range(4)]
+    # pks = [(0.2*i, 1-0.2*i) for i in range(4,5)]
+    max_times = [5 for i in range(4)]
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
     # max_times = [10]
     # additional_time = 30
-    max_infection = 2.5 #min(xks) - 1
+    max_infection = 0 #min(xks) - 1
     additional_time = 0
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
         print('Checking xks = ',xk)
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
-        max_infection = degrees_rv.mean() - 1
+        max_infection = max_infection + 1
         
         # Check if the tree is regular
         if isinstance(pk, list) == 1:
