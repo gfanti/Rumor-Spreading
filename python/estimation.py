@@ -317,11 +317,14 @@ def get_paths(paths, who_infected, adjacency, called_node, calling_node):
 
 # ML over irregular infinite trees
 def ml_message_passing_irregular_trees(d, depth, messages, degrees, who_infected, called, calling): 
-    # d - how many nodes get infected in each timestep (d+1 is the regular degree) 
-    # print('messages in message passing: ', messages)
-    # print('calling: ', calling, 'called', called)
-    # print('d is', d)
-    # print('degrees are ', degrees)
+    # d:            d+1 is the assumed regular degree (aka d_o)
+    # depth:        distance from the virtual source
+    # messages:     the likelihood messages stored at each node
+    # degrees:      degree of each node in the irregular graph
+    # who_infected: adjacency matrix of the infected subgraph
+    # called:       which node received the message
+    # calling:      which node passed the message
+
     if called == calling:
         for i in who_infected[called]:
             # (Prob. of choosing virtual source) x (Prob. infecting infected nodes)
@@ -362,7 +365,7 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
     # Returns the ML estimate of the source over an irregular tree 
     # Inputs:
     #
-    #       d:                      assumed regular degree for computing the alphas
+    #       d:                      assumed regular degree - 1 (for computing the alphas)
     #       T:                      number of timesteps to run
     #       virtual_source:         the virtual source of the infected subtree
     #       infected_nodes_degree:  the degrees of all infected nodes
@@ -385,6 +388,9 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
         messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
     else:
         messages = ml_message_passing_irregular_trees_alt(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source, degrees_rv)
+    print('MESSAGES ARE : ', messages)
+    print('DEGREES ARE : ', infected_nodes_degree)
+    
     # the likelihood of the virtual source is equal to zero
     # print('messages', messages)
     messages[virtual_source] = 0

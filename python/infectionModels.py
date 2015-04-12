@@ -162,6 +162,8 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, 1)
         else: # Call the regular estimator
             ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
+            print('who_infected: ', who_infected)
+            print('source: ', source, "ml_estimate: ", ml_estimate)
         ml_correct[timesteps] = (ml_estimate == source)
         tot_num_infected[timesteps] = num_infected
         
