@@ -10,6 +10,8 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description = "Run adaptive diffusion over trees.")
     parser.add_argument("-t", '--trials', help = "Number of trials to run (default: 1)", type = int, default = 1)
     parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
+    parser.add_argument("-d", '--diffusion', help = "Spread using regular diffusion? (default: false)", action = 'store_true')
+    parser.add_argument("-s", '--spy_probability', help = "Probability of a node being a spy (default: 0)", type = float, default = 0.0)
     parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
     parser.add_argument("--db", nargs = '?', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'none')
     parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
@@ -23,6 +25,11 @@ def parse_args(args):
         write_results = bool(args.write_results)
     else:
         write_results = False # Do not write results to file
+    if args.diffusion:
+        diffusion = bool(args.diffusion)
+        if args.spy_probability:
+            spy_probability = float(args.spy_probability)
+        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability}
     if args.alt:
         alt = bool(args.alt)
     else:
@@ -34,10 +41,10 @@ def parse_args(args):
             run = args.run
         else:
             run = 0
-        return (trials, write_results, database, run)
+        return {'trials':trials, 'write_results':write_results, 'database':database, 'run':run} 
         
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
-    return(trials, write_results, alt)
+    return {'trials':trials, 'write_results':write_results, 'alt':alt}
 
 def nCk(n, k):
     '''
@@ -175,3 +182,11 @@ def print_adjacency(adj, true):
     for i in range(len(adj)):
         if len(adj[i]) > 0:
             print(i, ': ', adj[i], ' (', true[i],')')
+            
+def update_spies_diffusion(candidates, spy_probability = 0.3):
+    spies = []
+    for candidate in candidates:
+        if random.random() < spy_probability:
+            spies.append(candidate)
+    return spies
+        

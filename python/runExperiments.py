@@ -74,7 +74,8 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
     return p, avg_num_infected, results
     
 '''Run a random tree'''    
-def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0):
+def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0,
+                 p = 0.5, spy_probability = 0.0):
     ''' Run dataset runs a spreading algorithm over a dataset. 
     
     Arguments:    
@@ -86,6 +87,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                                                        1 = alternative spreading (VS chosen proportional to degree of candidates) 
                                                        2 = pre-planned spreading
                                                        3 = Old adaptive diffusion (i.e. line algorithm)
+                                                       4 = regular diffusion (symmetric in all directions)
     
     Outputs:
     
@@ -100,6 +102,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     pd_jc = [0 for i in range(max_time)] # Jordan centrality
     pd_rand_leaf = [0 for i in range(max_time)]
     avg_num_infected = [0 for i in range(max_time)]
+    avg_hop_distance = [0 for i in range(max_time)]
     
     for trial in range(trials):
         if trial % 200 == 0:
@@ -129,6 +132,11 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             pd_rc = [i+j for (i,j) in zip(pd_rc, results[1])]
             # We don't actually compute the ML estimate here because it's computationally challenging
             ml_correct = pd_ml 
+        elif method == 4:
+            infection_details, ml_correct = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability)
+            num_infected, who_infected, hop_distances = infection_details
+            avg_hop_distance  = [i+j for (i,j) in zip(avg_hop_distance, hop_distances)]
+        # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
         # unpack the results
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
         avg_num_infected = [i+j for (i,j) in zip(avg_num_infected, num_infected)]
@@ -148,6 +156,9 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
         pd_rc = [float(i) / trials for i in pd_rc]
         pd_jc = [float(i) / trials for i in pd_jc]
         results = (pd_rc, pd_jc)
+    elif method == 4:
+        avg_hop_distance = [float(i) / trials for i in avg_hop_distance]
+        results = (pd_ml, avg_hop_distance)
 
     # return avg_num_infected, pd_ml, pd_rand_leaf
     return avg_num_infected, results
