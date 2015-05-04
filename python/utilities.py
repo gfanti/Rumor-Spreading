@@ -29,6 +29,8 @@ def parse_args(args):
         diffusion = bool(args.diffusion)
         if args.spy_probability:
             spy_probability = float(args.spy_probability)
+        else: 
+            spy_probability = 0.0
         return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability}
     if args.alt:
         alt = bool(args.alt)
