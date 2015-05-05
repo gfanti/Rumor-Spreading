@@ -56,6 +56,7 @@ if __name__ == "__main__":
                                                                     degrees_rv, 4, p=0.5, 
                                                                     spy_probability = spy_probability)[:2]
                 pd_ml, hop_distances = results
+                print('hop distances',hop_distances)
                 if write_results:
                     if isinstance(pk, float):
                         xk_str = str(xk[0])
