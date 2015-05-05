@@ -90,7 +90,9 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     timesteps = 1;
     
     ml_correct = []
+    spy_correct = []
     hop_distances = []
+    spy_hop_distances = []
     tot_num_infected = []
     num_infected = 0
     boundary_nodes = [source]
@@ -159,22 +161,28 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     # print('adjacnecy', [adjacency[i] for i in active_spies])
     # print('active nodes: ', [item for item in range(len(active_nodes)) if active_nodes[item]==1])
     estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps)
+    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps)
     # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
     # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
     distances = estimator.get_distances(source)
     if active_spies:
         ml_estimate = estimator.estimate_source()
         hop_distance = distances[ml_estimate]
+        spy_estimate = spy_estimator.estimate_source()
+        spy_hop_distance = distances[spy_estimate]
     else:
         # choose a random node
         # ml_estimate = -1
         ml_estimate = random.randint(0,num_infected - 1)
         # hop_distance = estimator.get_diameter()
         hop_distance = distances[ml_estimate]
-        print('Diameter is ', hop_distance)
+        spy_estimate = ml_estimate
+        spy_hop_distance = hop_distance
     print('True source: ', source, ' estimate: ', ml_estimate)
     ml_correct.append(ml_estimate == source)
     hop_distances.append(hop_distance)
+    spy_correct.append(spy_estimate == source)
+    spy_hop_distances.append(spy_hop_distance)
     tot_num_infected.append(num_infected)
     # max_time = max(spies_timestamps)
     # # print('spies_timestamps:', spies_timestamps)
@@ -194,8 +202,9 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         
     print('Num spies are: ', len(spies), ' out of ', num_infected)
     print('\n\n')
-    infection_details = (tot_num_infected, who_infected, hop_distances)
-    return infection_details, ml_correct
+    infection_details = (tot_num_infected, who_infected, hop_distances, spy_hop_distances)
+    results = (ml_correct, spy_correct)
+    return infection_details, results
     
 # Semi-distributed adaptive diffusion over irregular trees (uses 1 timestep, this
 # is the version we used in our simulations)

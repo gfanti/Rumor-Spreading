@@ -97,12 +97,14 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.'''
     
     pd_ml = [0 for i in range(max_time)] # Maximum likelihood
+    pd_spy = [0 for i in range(max_time)] # Maximum likelihood
     additional_pd_mean = [0 for i in range(additional_time)] # Pd from additional measurements
     pd_rc = [0 for i in range(max_time)] # Rumor centrality
     pd_jc = [0 for i in range(max_time)] # Jordan centrality
     pd_rand_leaf = [0 for i in range(max_time)]
     avg_num_infected = [0 for i in range(max_time)]
     avg_hop_distance = [0 for i in range(max_time)]
+    avg_spy_hop_distance = [0 for i in range(max_time)]
     
     for trial in range(trials):
         if trial % 200 == 0:
@@ -133,9 +135,12 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             # We don't actually compute the ML estimate here because it's computationally challenging
             ml_correct = pd_ml 
         elif method == 4:
-            infection_details, ml_correct = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability)
-            num_infected, who_infected, hop_distances = infection_details
+            infection_details, results = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability)
+            ml_correct, spy_correct = results
+            num_infected, who_infected, hop_distances, spy_hop_distances = infection_details
             avg_hop_distance  = [i+j for (i,j) in zip(avg_hop_distance, hop_distances)]
+            avg_spy_hop_distance  = [i+j for (i,j) in zip(avg_spy_hop_distance, spy_hop_distances)]
+            pd_spy = [i+j for (i,j) in zip(pd_spy, spy_correct)]
         # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
         # unpack the results
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
@@ -157,8 +162,12 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
         pd_jc = [float(i) / trials for i in pd_jc]
         results = (pd_rc, pd_jc)
     elif method == 4:
+        pd_spy = [float(i) / trials for i in pd_spy]
+        avg_spy_hop_distance = [float(i) / trials for i in avg_hop_distance]
         avg_hop_distance = [float(i) / trials for i in avg_hop_distance]
-        results = (pd_ml, avg_hop_distance)
+        print('pd_ml: ', pd_ml, 'avg_hop_distance', avg_hop_distance)
+        print('pd_spy: ', pd_spy, 'avg_spy_hop_distance', avg_spy_hop_distance)
+        results = (pd_ml, avg_hop_distance, pd_spy, avg_spy_hop_distance)
 
     # return avg_num_infected, pd_ml, pd_rand_leaf
     return avg_num_infected, results

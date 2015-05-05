@@ -42,7 +42,7 @@ if __name__ == "__main__":
         if isinstance(pk, list) == 1:
             if diffusion:
                 print('Diffusion code')
-                num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 4)[:2]
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 4)[:2]
             else:
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 3)
             pd_rc, pd_jc = results
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
                                                                     degrees_rv, 4, p=0.5, 
                                                                     spy_probability = spy_probability)[:2]
-                pd_ml, hop_distances = results
+                pd_ml, hop_distances, pd_spy, spy_hop_distances = results
                 print('hop distances',hop_distances)
                 if write_results:
                     if isinstance(pk, float):
@@ -66,7 +66,9 @@ if __name__ == "__main__":
                         xk_str = [str(i) for i in xk]
                         pk_str = [str(round(i,1)) for i in pk]
                         filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+str(spy_probability) + '.mat'
-                    io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances), 'num_infected':np.array(num_infected)})
+                    io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
+                                         'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
+                                         'num_infected':np.array(num_infected)})
                     continue
             # Check for weighted spreading
             elif alt:

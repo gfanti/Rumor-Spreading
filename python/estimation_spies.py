@@ -145,6 +145,15 @@ class OptimalEstimator(Estimator):
             Lambda_inv = pinv(Lambda)
         return Lambda_inv
        
+class FirstSpyEstimator(Estimator):
+    def estimate_source(self):
+        # Picks a random neighbor of the first spy to receive the message
+        for spy in self.malicious_nodes:
+            options = [option for option in self.adjacency[spy] if option not in self.malicious_nodes]
+            if options:
+                break
+        return random.choice(options) 
+       
 class SumDistanceEstimator(Estimator):
     def estimate_source(self, time_t):
         # Sums the distance to the unvisited nodes and visited nodes at time_t
