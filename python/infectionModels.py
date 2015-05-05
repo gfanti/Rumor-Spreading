@@ -161,13 +161,16 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps)
     # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
     # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    distances = estimator.get_distances(source)
     if active_spies:
         ml_estimate = estimator.estimate_source()
-        distances = estimator.get_distances(source)
         hop_distance = distances[ml_estimate]
     else:
-        ml_estimate = -1
-        hop_distance = estimator.get_diameter()
+        # choose a random node
+        # ml_estimate = -1
+        ml_estimate = random.randint(0,num_infected - 1)
+        # hop_distance = estimator.get_diameter()
+        hop_distance = distances[ml_estimate]
         print('Diameter is ', hop_distance)
     print('True source: ', source, ' estimate: ', ml_estimate)
     ml_correct.append(ml_estimate == source)
