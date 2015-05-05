@@ -150,8 +150,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         # print('timestamps: ', timestamps, len(timestamps))
         # print('spies are', spies)
         timesteps += 1
-    # spies_timestamps = [timestamps[j] for j in active_spies]
-    spies_timestamps = [timestamps[j] for j in spies]
+    spies_timestamps = [timestamps[j] for j in active_spies]
+    # spies_timestamps = [timestamps[j] for j in spies]
     adjacency = [set(item) for item in who_infected]
     # print('spies:',spies)
     # print('active spies:', active_spies)
@@ -161,10 +161,10 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     
     # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps)
     # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps)
-    estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
-    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes)
-    # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
-    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
+    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes)
+    estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
     distances = estimator.get_distances(source)
     if active_spies:
         ml_estimate = estimator.estimate_source()
