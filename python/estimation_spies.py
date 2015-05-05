@@ -157,7 +157,7 @@ class FirstSpyEstimator(Estimator):
         estimate = random.randint(0, len(self.adjacency)-1)
         for spy in self.malicious_nodes:
             options = [option for option in self.adjacency[spy] if self.active_nodes[option] == 1]
-            print('options', options)
+            # print('options', options)
             if options:
                 estimate = random.choice(options)
                 break
