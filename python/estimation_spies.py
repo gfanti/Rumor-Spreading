@@ -44,7 +44,6 @@ class Estimator(object):
         max_dist = 0
         for node in range(len(self.adjacency)):
             distances = self.get_distances(node)
-            print('max distance', max(distances))
             if max(distances) > max_dist:
                 max_dist = max(distances)
         return max_dist
@@ -136,6 +135,7 @@ class OptimalEstimator(Estimator):
         # print('Adjacency: ', self.adjacency)
         # print('Spies: ', self.malicious_nodes)
         # print('Spy_times: ', self.timestamps)
+        # print('spy distances', spy_distances)
         # print('Lambda: ', Lambda)
         try:
             Lambda_inv = inv(Lambda)
