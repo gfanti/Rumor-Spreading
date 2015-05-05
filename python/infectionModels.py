@@ -100,8 +100,9 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     active_nodes = [1] # marks which nodes are candidate sources
     spies = []
     active_spies = []
+    while boundary_nodes:
     # while timesteps <= max_time:
-    while (1 in [active_nodes[item] for item in boundary_nodes]) and timesteps < 10:
+    # while (1 in [active_nodes[item] for item in boundary_nodes]) and timesteps < 10:
         # print('time', timesteps)
     
         num_candidates = len(boundary_nodes)
@@ -116,8 +117,13 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # print('who_infected before: ', who_infected)
             if num_to_infect > 0:
                 neighbors = ([k+len(degrees) for k in range(num_to_infect)])
+                # timestamps += [timesteps for j in range(num_to_infect)]
+                # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
+                timestamps += [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
+                
                 degrees, who_infected = utilities.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
                 new_spies = utilities.update_spies_diffusion(neighbors, spy_probability=spy_probability)
+                new_spies = [spy for spy in new_spies if timestamps[spy] <= max_time]
                 spies += new_spies
                 # mark whether the new additions are possible candidates
                 if active_nodes[node] == -1:
@@ -128,10 +134,9 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
                         if neighbor in new_spies:
                             active_nodes[neighbor] = -1
                             active_spies += [neighbor]
-                # timestamps += [timesteps for j in range(num_to_infect)]
-                # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
-                timestamps += [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
-                boundary_nodes += neighbors
+                
+                # boundary_nodes += neighbors
+                boundary_nodes += [neighbor for neighbor in neighbors if timestamps[neighbor] <= max_time]
                 if num_to_infect < num_uninfected_neighbors:
                     boundary_nodes.append(node)
             else:
