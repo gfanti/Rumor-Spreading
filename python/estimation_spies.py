@@ -161,7 +161,7 @@ class FirstSpyEstimator(Estimator):
     def estimate_source(self):
         # Picks a random neighbor of the first spy to receive the message
         estimate = random.randint(0, len(self.adjacency)-1)
-        for spy in self.malicious_nodes:
+        for spy in [x for (y,x) in sorted(zip(self.timestamps,self.malicious_nodes))]:
             options = [option for option in self.adjacency[spy] if self.active_nodes[option] == 1]
             # print('options', options)
             if options:

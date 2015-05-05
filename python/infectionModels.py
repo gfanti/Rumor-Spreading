@@ -5,6 +5,7 @@ import random
 from scipy import stats
 import numpy as np
 import utilities
+import networkx
 # import cProfile
 
 #Semi-distributed adaptive diffusion over regular trees (uses two timesteps)
