@@ -78,6 +78,8 @@ class OptimalEstimator(Estimator):
         max_likelihood = None
         max_indices = []
         num_spies = len(self.malicious_nodes)
+        print('spies', self.malicious_nodes)
+        print('timestamps', self.timestamps)
         # d = np.diff(self.timestamps)
         d = np.array([self.timestamps[k+1] - self.timestamps[0] for k in range(num_spies - 1)])
         # First compute the paths between spy 1 and the rest
@@ -85,7 +87,6 @@ class OptimalEstimator(Estimator):
         for node in range(len(self.adjacency)):
             if (node in self.malicious_nodes) or (self.active_nodes[node] == -1):
                 continue
-            sum_distance = 0
             distances = self.get_distances(node)
             # 2 is the mean delay if a message gets forwarded
             mu = np.array([2*(distances[self.malicious_nodes[k+1]] - distances[self.malicious_nodes[0]]) for k in range(num_spies-1)])
@@ -97,15 +98,19 @@ class OptimalEstimator(Estimator):
             d_norm = np.array([item_d - 0.5*item_mu for (item_d, item_mu) in zip(d, mu)])
             d_norm = np.transpose(d_norm)
             likelihood = float(np.dot(np.dot(mu, Lambda_inv), d_norm))
-            # print('Node ', node,': likelihood is ', likelihood)
+            print('Node ', node,': likelihood is ', likelihood)
             if (max_likelihood is None) or (max_likelihood < likelihood):
                 max_likelihood = likelihood
                 max_indices = [node]
             elif (max_likelihood == likelihood):
                 max_indices.append(node)
-        # print('the candidates are ', max_indices)
+            
+        print('the candidates are ', max_indices)
+        print('with likelihood ', max_likelihood)
         # print('the spies are ', self.malicious_nodes)
-        return random.choice(max_indices)
+        estimate = random.choice(max_indices)
+        print(self.adjacency[estimate])
+        return estimate
         
     def compute_lambda_inv(self, node):
         num_spies = len(self.malicious_nodes)
@@ -152,6 +157,7 @@ class FirstSpyEstimator(Estimator):
         estimate = random.randint(0, len(self.adjacency)-1)
         for spy in self.malicious_nodes:
             options = [option for option in self.adjacency[spy] if self.active_nodes[option] == 1]
+            print('options', options)
             if options:
                 estimate = random.choice(options)
                 break
