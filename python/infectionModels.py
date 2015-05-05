@@ -109,7 +109,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     
         num_candidates = len(boundary_nodes)
         node = boundary_nodes.pop(0)
-        # print('who infected', who_infected)
+        print('who infected', who_infected)
         # print('degrees[node]', node, len(degrees), len(who_infected))
         num_uninfected_neighbors = degrees[node] - len(who_infected[node])
         # num_to_infect = np.random.binomial(num_uninfected_neighbors, p)
@@ -158,8 +158,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         
     # Remove the nodes with time greater than max_time
         
-    # spies_timestamps = [timestamps[j] for j in active_spies]
-    spies_timestamps = [timestamps[j] for j in spies]
+    spies_timestamps = [timestamps[j] for j in active_spies]
+    # spies_timestamps = [timestamps[j] for j in spies]
     adjacency = [set(item) for item in who_infected]
     # print('spies:',spies)
     # print('active spies:', active_spies)
@@ -169,12 +169,12 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     
     spy_active_nodes = [1 if i not in spies else -1 for i in range(num_infected)]
     
-    estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, spy_active_nodes)
-    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, spy_active_nodes)
+    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, spy_active_nodes)
+    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, spy_active_nodes)
     # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
     # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes)
-    # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
-    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
     distances = estimator.get_distances(source)
     if active_spies:
         ml_estimate = estimator.estimate_source()

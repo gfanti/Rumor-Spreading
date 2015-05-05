@@ -22,7 +22,7 @@ if __name__ == "__main__":
     xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)]
-    max_times = [6 for i in range(1)]
+    max_times = [4 for i in range(1)]
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
