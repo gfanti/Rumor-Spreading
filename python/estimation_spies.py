@@ -148,11 +148,13 @@ class OptimalEstimator(Estimator):
 class FirstSpyEstimator(Estimator):
     def estimate_source(self):
         # Picks a random neighbor of the first spy to receive the message
+        estimate = random.randint(0, len(self.adjacency)-1)
         for spy in self.malicious_nodes:
             options = [option for option in self.adjacency[spy] if option not in self.malicious_nodes]
             if options:
+                estimate = random.choice(options)
                 break
-        return random.choice(options) 
+        return estimate
        
 class SumDistanceEstimator(Estimator):
     def estimate_source(self, time_t):

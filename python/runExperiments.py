@@ -163,7 +163,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
         results = (pd_rc, pd_jc)
     elif method == 4:
         pd_spy = [float(i) / trials for i in pd_spy]
-        avg_spy_hop_distance = [float(i) / trials for i in avg_hop_distance]
+        avg_spy_hop_distance = [float(i) / trials for i in avg_spy_hop_distance]
         avg_hop_distance = [float(i) / trials for i in avg_hop_distance]
         print('pd_ml: ', pd_ml, 'avg_hop_distance', avg_hop_distance)
         print('pd_spy: ', pd_spy, 'avg_spy_hop_distance', avg_spy_hop_distance)

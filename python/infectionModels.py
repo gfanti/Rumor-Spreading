@@ -108,42 +108,40 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         # print('time', timesteps)
     
         num_candidates = len(boundary_nodes)
-        counter = 0
-        while counter < num_candidates: 
-            counter += 1
-            node = boundary_nodes.pop(0)
-            # print('degrees[node]', degrees[node], len(who_infected[node]), node)
-            num_uninfected_neighbors = degrees[node] - len(who_infected[node])
-            num_to_infect = np.random.binomial(num_uninfected_neighbors, p)
-            # print('num to infect', num_to_infect, 'out of ', num_uninfected_neighbors,'\n')
-            # print('who_infected before: ', who_infected)
-            if num_to_infect > 0:
-                neighbors = ([k+len(degrees) for k in range(num_to_infect)])
-                # timestamps += [timesteps for j in range(num_to_infect)]
-                # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
-                timestamps += [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
-                
-                degrees, who_infected = utilities.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
-                new_spies = utilities.update_spies_diffusion(neighbors, spy_probability=spy_probability)
-                new_spies = [spy for spy in new_spies if timestamps[spy] <= max_time]
-                spies += new_spies
-                # mark whether the new additions are possible candidates
-                if active_nodes[node] == -1:
-                    active_nodes += [-1 for neighbor in neighbors]
-                else:
-                    active_nodes += [1 for neighbor in neighbors]
-                    for neighbor in neighbors:
-                        if neighbor in new_spies:
-                            active_nodes[neighbor] = -1
-                            active_spies += [neighbor]
-                
-                # boundary_nodes += neighbors
-                boundary_nodes += [neighbor for neighbor in neighbors if timestamps[neighbor] <= max_time]
-                if num_to_infect < num_uninfected_neighbors:
-                    boundary_nodes.append(node)
+        node = boundary_nodes.pop(0)
+        # print('degrees[node]', degrees[node], len(who_infected[node]), node)
+        num_uninfected_neighbors = degrees[node] - len(who_infected[node])
+        # num_to_infect = np.random.binomial(num_uninfected_neighbors, p)
+        num_to_infect = num_uninfected_neighbors
+        # print('num to infect', num_to_infect, 'out of ', num_uninfected_neighbors,'\n')
+        # print('who_infected before: ', who_infected)
+        if num_to_infect > 0:
+            neighbors = ([k+len(degrees) for k in range(num_to_infect)])
+            # timestamps += [timesteps for j in range(num_to_infect)]
+            # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
+            timestamps += [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
+            
+            degrees, who_infected = utilities.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
+            new_spies = utilities.update_spies_diffusion(neighbors, spy_probability=spy_probability)
+            new_spies = [spy for spy in new_spies if timestamps[spy] <= max_time]
+            spies += new_spies
+            # mark whether the new additions are possible candidates
+            if active_nodes[node] == -1:
+                active_nodes += [-1 for neighbor in neighbors]
             else:
+                active_nodes += [1 for neighbor in neighbors]
+                for neighbor in neighbors:
+                    if neighbor in new_spies:
+                        active_nodes[neighbor] = -1
+                        active_spies += [neighbor]
+            
+            # boundary_nodes += neighbors
+            boundary_nodes += [neighbor for neighbor in neighbors if timestamps[neighbor] <= max_time]
+            if num_to_infect < num_uninfected_neighbors:
                 boundary_nodes.append(node)
-            # print('who_infected after: ', who_infected)
+        else:
+            boundary_nodes.append(node)
+        # print('who_infected after: ', who_infected)
                 
         
         num_infected = len(who_infected)
@@ -160,10 +158,13 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     # print('active spies timestamps', spies_timestamps)
     # print('adjacnecy', [adjacency[i] for i in active_spies])
     # print('active nodes: ', [item for item in range(len(active_nodes)) if active_nodes[item]==1])
-    estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps)
-    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps)
-    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
+    
+    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps)
+    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps)
+    estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes)
+    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes)
     # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
+    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes)
     distances = estimator.get_distances(source)
     if active_spies:
         ml_estimate = estimator.estimate_source()
