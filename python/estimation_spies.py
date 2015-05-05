@@ -11,10 +11,18 @@ class Estimator(object):
         self.adjacency = adjacency
         self.malicious_nodes = malicious_nodes
         self.timestamps = timestamps
+        self.graph = networkx.Graph()
+        
         if active_nodes is None:
             self.active_nodes = [1 for i in range(len(adjacency))]
         else:
             self.active_nodes = active_nodes
+            
+        # Populate the graph
+        for idx in range(len(self.adjacency)):
+            edges = self.adjacency[idx]
+            for e in edges:
+                self.graph.add_edge(idx, e)
         
     def estimate_source(self):
         pass
@@ -41,12 +49,7 @@ class Estimator(object):
     def get_diameter(self):
         ''' Returns the diameter of the graph'''
         # computes the diameter of the adjacency matrix
-        max_dist = 0
-        for node in range(len(self.adjacency)):
-            distances = self.get_distances(node)
-            if max(distances) > max_dist:
-                max_dist = max(distances)
-        return max_dist
+        return networkx.diameter(self.graph)
         
     def get_spanning_tree(self, node):
         ''' Returns a networkx spanning tree of the adjacency matrix
@@ -87,9 +90,10 @@ class OptimalEstimator(Estimator):
         for node in range(len(self.adjacency)):
             if (node in self.malicious_nodes) or (self.active_nodes[node] == -1):
                 continue
-            distances = self.get_distances(node)
+            # distances = self.get_distances(node)
             # 2 is the mean delay if a message gets forwarded
-            mu = np.array([2*(distances[self.malicious_nodes[k+1]] - distances[self.malicious_nodes[0]]) for k in range(num_spies-1)])
+            mu = np.array([2.0*(networkx.shortest_path_length(self.graph,node, self.malicious_nodes[k+1]) - 
+                                networkx.shortest_path_length(self.graph,node, self.malicious_nodes[0])) for k in range(num_spies-1)])
             mu.shape = (1,len(mu))
             # print('timestamps are ', self.timestamps)
             # print('mu is ', mu, 'd is ',d)
@@ -97,6 +101,8 @@ class OptimalEstimator(Estimator):
             # subtract distance from nodes that have seen the message already
             d_norm = np.array([item_d - 0.5*item_mu for (item_d, item_mu) in zip(d, mu)])
             d_norm = np.transpose(d_norm)
+            print('d_norm', d_norm, 'mu', mu)
+            print('lambda inv', Lambda_inv)
             likelihood = float(np.dot(np.dot(mu, Lambda_inv), d_norm))
             print('Node ', node,': likelihood is ', likelihood)
             if (max_likelihood is None) or (max_likelihood < likelihood):
@@ -162,66 +168,3 @@ class FirstSpyEstimator(Estimator):
                 estimate = random.choice(options)
                 break
         return estimate
-       
-class SumDistanceEstimator(Estimator):
-    def estimate_source(self, time_t):
-        # Sums the distance to the unvisited nodes and visited nodes at time_t
-        max_sum_distance = -100000
-        max_index = -1
-        for node in range(len(self.adjacency)):
-            sum_distance = 0
-            distances = self.get_distances(node)
-            # subtract distance from nodes that have seen the message already
-            sum_distance -= sum([distances[i] for i in range(len(self.malicious_nodes)) if self.timestamps[i] <= time_t])
-            # add the distance to nodes that did not see the message yet
-            sum_distance += sum([distances[i] for i in range(len(self.malicious_nodes)) if self.timestamps[i] > time_t])
-            if max_sum_distance < sum_distance:
-                max_index = node
-                max_sum_distance = sum_distance
-        return max_index
-       
-class EntropyEstimator(Estimator):
-    def estimate_source(self):
-        # Sums the distance to the unvisited nodes and visited nodes at time_t
-        max_entropy = -1
-        min_index = -1
-        for node in range(len(self.adjacency)):
-            distances = self.get_distances(node)
-            # subtract distance from nodes that have seen the message already
-            distribution = [distances[i]/self.timestamps[i] for i in range(len(self.malicious_nodes))]
-            distribution = [item / sum(distribution) for item in distribution if item > 0]
-            entropy = self.compute_entropy(distribution)
-            if max_entropy < entropy:
-                max_index = node
-                max_entropy = entropy
-        return max_index
-        
-    def compute_entropy(self, dist):
-        # computes the entropy of distribution dist
-        return sum([-p*math.log(p) for p in dist])
-        
-class JordanEstimator(Estimator):
-    
-    def estimate_source(self):
-        # Computes the jordan estimate of the source
-        jordan_dist = -1
-        jordan_center = -1
-        for node in range(len(self.adjacency)):
-            dist = self.compute_jordan_centrality(node)
-            if (jordan_dist == -1) or (dist < jordan_dist):
-                jordan_dist = dist
-                jordan_center = node
-        print("The best estimate is ", jordan_center, " with a centrality of ", jordan_dist)
-        return jordan_center
-    
-    def compute_jordan_centrality(self, source):
-        # Computes the jordan centrality of a single node 'source', as viewed by the malicious nodes
-        
-        # compute the distances to all malicious nodes
-        distances = self.get_distances(source)
-        
-        # Extract the longest distance to any one of the malicious nodes
-        jordan_dist = max([distances[j] for j in self.malicious_nodes])
-        return jordan_dist
-        
-    
