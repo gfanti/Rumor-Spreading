@@ -110,7 +110,6 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     
         num_candidates = len(boundary_nodes)
         node = boundary_nodes.pop(0)
-        print('who infected', who_infected)
         # print('degrees[node]', node, len(degrees), len(who_infected))
         num_uninfected_neighbors = degrees[node] - len(who_infected[node])
         # num_to_infect = np.random.binomial(num_uninfected_neighbors, p)
@@ -181,9 +180,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         spy_estimate = spy_estimator.estimate_source()
     else:
         # choose a random node
-        # ml_estimate = -1
         ml_estimate = random.randint(0,num_infected - 1)
-        # hop_distance = estimator.get_diameter()
         spy_estimate = ml_estimate
     hop_distance = networkx.shortest_path_length(estimator.graph, source, ml_estimate)
     spy_hop_distance = networkx.shortest_path_length(estimator.graph, source, spy_estimate)

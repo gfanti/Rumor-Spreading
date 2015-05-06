@@ -4,14 +4,16 @@ import math
 import numpy as np
 from numpy.linalg import inv, pinv
 import heapq
-import networkx
+import networkx as nx
+import matplotlib
+import matplotlib.pyplot as plt
 
 class Estimator(object):
     def __init__(self, adjacency, malicious_nodes, timestamps, active_nodes = None):
         self.adjacency = adjacency
         self.malicious_nodes = malicious_nodes
         self.timestamps = timestamps
-        self.graph = networkx.Graph()
+        self.graph = nx.Graph()
         
         if active_nodes is None:
             self.active_nodes = [1 for i in range(len(adjacency))]
@@ -49,14 +51,14 @@ class Estimator(object):
     def get_diameter(self):
         ''' Returns the diameter of the graph'''
         # computes the diameter of the adjacency matrix
-        return networkx.diameter(self.graph)
+        return nx.diameter(self.graph)
         
     def get_spanning_tree(self, node):
         ''' Returns a networkx spanning tree of the adjacency matrix
         rooted at node'''
         num_nodes = len(self.adjacency)
         # sp_adjacency = [set() for i in range(num_nodes)]
-        G = networkx.Graph()
+        G = nx.Graph()
         for vertex in range(len(self.adjacency)):
             G.add_node(vertex)
         nodes = set([i for i in range(num_nodes)])
@@ -74,6 +76,22 @@ class Estimator(object):
                     G.add_edge(vertex, i)
         # return sp_adjacency
         return G
+        
+    def draw_graph(self):
+        G = self.graph
+        pos = nx.spring_layout(G)
+        nl = [x for x in G.nodes() if x not in self.malicious_nodes]
+        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="#A0CBE2")
+        nl = [x for x in G.nodes() if x == 0]
+        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="green")
+        nl = [x for x in G.nodes() if x in self.malicious_nodes]
+        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="red")
+        nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
+        labels = {}
+        for x in G.nodes(data=True):
+            labels[x[0]] = x[0]
+        nx.draw_networkx_labels(G, pos, labels)
+        plt.show()
                 
 class OptimalEstimator(Estimator):
     def estimate_source(self):
@@ -81,41 +99,49 @@ class OptimalEstimator(Estimator):
         max_likelihood = None
         max_indices = []
         num_spies = len(self.malicious_nodes)
-        print('spies', self.malicious_nodes)
-        print('timestamps', self.timestamps)
+        # print('spies', self.malicious_nodes)
+        # print('timestamps', self.timestamps)
         # d = np.diff(self.timestamps)
         d = np.array([self.timestamps[k+1] - self.timestamps[0] for k in range(num_spies - 1)])
         # First compute the paths between spy 1 and the rest
                             
+        # print('adjacency',self.adjacency)
         for node in range(len(self.adjacency)):
             if (node in self.malicious_nodes) or (self.active_nodes[node] == -1):
                 continue
             # distances = self.get_distances(node)
             # 2 is the mean delay if a message gets forwarded
-            mu = np.array([2.0*(networkx.shortest_path_length(self.graph,node, self.malicious_nodes[k+1]) - 
-                                networkx.shortest_path_length(self.graph,node, self.malicious_nodes[0])) for k in range(num_spies-1)])
+            mu = np.array([2.0*(nx.shortest_path_length(self.graph,node, self.malicious_nodes[k+1]) - 
+                                nx.shortest_path_length(self.graph,node, self.malicious_nodes[0])) for k in range(num_spies-1)])
             mu.shape = (1,len(mu))
             # print('timestamps are ', self.timestamps)
             # print('mu is ', mu, 'd is ',d)
             Lambda_inv = self.compute_lambda_inv(node)
             # subtract distance from nodes that have seen the message already
-            d_norm = np.array([item_d - 0.5*item_mu for (item_d, item_mu) in zip(d, mu)])
-            d_norm = np.transpose(d_norm)
-            print('d_norm', d_norm, 'mu', mu)
-            print('lambda inv', Lambda_inv)
+            # print('d is',d, 'mu is ',mu)
+            # print('diff is', [item_d - 0.5*item_mu for (item_d, item_mu) in zip(d, mu)])
+            # d_norm = np.array([item_d - 0.5*item_mu for (item_d, item_mu) in zip(d, mu)])
+            d_norm = []
+            for idx in range(len(d)):
+                d_norm.append(d[idx] - 0.5 * mu[0,idx])
+            d_norm = np.transpose(np.array(d_norm))
+            # print('d_norm', d_norm, 'mu', mu)
+            # print('lambda inv', Lambda_inv)
             likelihood = float(np.dot(np.dot(mu, Lambda_inv), d_norm))
-            print('Node ', node,': likelihood is ', likelihood)
+            # print('Node ', node,': likelihood is ', likelihood)
             if (max_likelihood is None) or (max_likelihood < likelihood):
                 max_likelihood = likelihood
                 max_indices = [node]
             elif (max_likelihood == likelihood):
                 max_indices.append(node)
             
-        print('the candidates are ', max_indices)
-        print('with likelihood ', max_likelihood)
+        # print('the candidates are ', max_indices)
+        # print('with likelihood ', max_likelihood)
+        # if 0 not in max_indices:
+            # self.draw_graph()
         # print('the spies are ', self.malicious_nodes)
         estimate = random.choice(max_indices)
-        print(self.adjacency[estimate])
+        # print(self.adjacency[estimate])
         return estimate
         
     def compute_lambda_inv(self, node):
@@ -130,7 +156,7 @@ class OptimalEstimator(Estimator):
             source = self.malicious_nodes[0]
             destination = self.malicious_nodes[i+1]
             # path = self.dijkstra(source, destination, spanning_tree)
-            path = networkx.shortest_path(spanning_tree, source, destination)
+            path = nx.shortest_path(spanning_tree, source, destination)
             path.pop(0)
             # print('path is ', path)
             # print('original adjacency is ', self.adjacency)
@@ -140,7 +166,7 @@ class OptimalEstimator(Estimator):
             for j in range(num_spies-1):
                 if i == j:
                     # Lambda[i,j] = spy_distances[i+1]
-                    Lambda[i,j] = networkx.shortest_path_length(spanning_tree,self.malicious_nodes[0],self.malicious_nodes[i+1])
+                    Lambda[i,j] = nx.shortest_path_length(spanning_tree,self.malicious_nodes[0],self.malicious_nodes[i+1])
                 else:
                     Lambda[i,j] = len(paths[i].intersection(paths[j]))
                     Lambda[j,i] = Lambda[i,j]
@@ -152,7 +178,8 @@ class OptimalEstimator(Estimator):
         try:
             Lambda_inv = inv(Lambda)
         except:
-            # print('matrix was not invertible.')
+            print('matrix was not invertible.')
+            # self.draw_graph()
             # return max_index
             Lambda_inv = pinv(Lambda)
         return Lambda_inv
