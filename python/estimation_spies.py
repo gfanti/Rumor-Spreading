@@ -197,7 +197,7 @@ class OptimalEstimator(Estimator):
        
 class FirstSpyEstimator(Estimator):
     def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None):
-        super(FirstSpyEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors = infectors)
+        super(FirstSpyEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors, active_nodes)
         
     def estimate_source(self, use_directions=True):
         # Picks a random neighbor of the first spy to receive the message
