@@ -19,10 +19,10 @@ if __name__ == "__main__":
     # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
     # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
     # max_times = [5, 4, 4]
-    xks = [np.array([3]) for i in range(1)]
+    xks = [np.array([4]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)]
-    max_times = [4 for i in range(1)]
+    max_times = [8 for i in range(1)]
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
