@@ -19,10 +19,16 @@ if __name__ == "__main__":
     # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
     # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
     # max_times = [5, 4, 4]
-    xks = [np.array([4]) for i in range(1)]
+    
+    # Regular tree sizes:
+    # d=3, T=12 => E[N] = 155
+    # d=4, T=8 => E[N] = 120
+    # d=5, T=7 => E[N] = 157
+    xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)]
-    max_times = [8 for i in range(1)]
+    max_times = [12 for i in range(1)]
+    est_times = [6,8,10,12,14,16]
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
@@ -53,8 +59,9 @@ if __name__ == "__main__":
         else:
             if diffusion:
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
-                                                                    degrees_rv, 4, p=0.5, 
-                                                                    spy_probability = spy_probability)[:2]
+                                                                    degrees_rv, method=4, p=0.5, 
+                                                                    spy_probability = spy_probability,
+                                                                    est_times = est_times)[:2]
                 pd_ml, hop_distances, pd_spy, spy_hop_distances = results
                 print('hop distances',hop_distances)
                 if write_results:

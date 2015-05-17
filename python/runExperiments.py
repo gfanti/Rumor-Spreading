@@ -75,7 +75,7 @@ def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, m
     
 '''Run a random tree'''    
 def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0,
-                 p = 0.5, spy_probability = 0.0):
+                 p = 0.5, spy_probability = 0.0, est_times=None):
     ''' Run dataset runs a spreading algorithm over a dataset. 
     
     Arguments:    
@@ -91,7 +91,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     
     Outputs:
     
-          p:                      average proportion of nodes reached by the algorithm 
+          p:                      delay rate 
           avg_num_infected:           total number of nodes infected by the algorithm
     
     NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.'''
@@ -107,8 +107,8 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     avg_spy_hop_distance = [0 for i in range(max_time)]
     
     for trial in range(trials):
-        if trial % 200 == 0:
-            print('Trial ',trial, ' / ',trials-1)
+        if trial % 10 == 0:
+            print('\nTrial ',trial, ' / ',trials-1)
         source = 0
         # Infect nodes with adaptive diffusion over an irregular tree, and take multiple snapshots
         if method == 0:
@@ -135,7 +135,8 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             # We don't actually compute the ML estimate here because it's computationally challenging
             ml_correct = pd_ml 
         elif method == 4:
-            infection_details, results = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability)
+            infection_details, results = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability,
+                                                                                               est_times = est_times)
             ml_correct, spy_correct = results
             num_infected, who_infected, hop_distances, spy_hop_distances = infection_details
             avg_hop_distance  = [i+j for (i,j) in zip(avg_hop_distance, hop_distances)]

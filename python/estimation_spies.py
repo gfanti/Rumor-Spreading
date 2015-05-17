@@ -39,10 +39,15 @@ class Estimator(object):
     def draw_graph(self):
         G = self.graph
         pos = nx.spring_layout(G)
-        nl = [x for x in G.nodes() if x not in self.malicious_nodes]
+        # print('self active_nodes',self.active_nodes)
+        nl = [x for x in G.nodes() if self.active_nodes[x] >= 0]
         nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="#A0CBE2")
+        nl = [x for x in G.nodes() if self.active_nodes[x] < 0]
+        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="yellow")
         nl = [x for x in G.nodes() if x in self.malicious_nodes]
         nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="red")
+        nl = [0]
+        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="green")
         nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
         labels = {}
         for x in G.nodes(data=True):
@@ -58,21 +63,6 @@ class Estimator(object):
             return None
         return G
         
-    def draw_graph(self):
-        G = self.graph
-        pos = nx.spring_layout(G)
-        nl = [x for x in G.nodes() if x not in self.malicious_nodes]
-        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="#A0CBE2")
-        nl = [x for x in G.nodes() if x == 0]
-        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="green")
-        nl = [x for x in G.nodes() if x in self.malicious_nodes]
-        nx.draw_networkx_nodes(G,pos,nodelist=nl,node_color="red")
-        nx.draw_networkx_edges(G,pos,width=1.0,alpha=0.5)
-        labels = {}
-        for x in G.nodes(data=True):
-            labels[x[0]] = x[0]
-        nx.draw_networkx_labels(G, pos, labels)
-        plt.show()
                 
 class OptimalEstimator(Estimator):
     def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None):
@@ -120,14 +110,15 @@ class OptimalEstimator(Estimator):
         
         if num_spies <= 1:
             try:
-                return random.choice([node for node in G.nodes() if node not in spies])
+                return random.choice([node for node in G.nodes() if self.active_nodes[node] >= 0])
             except:
-                return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] == 1])
+                return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] >= 0])
         
         d = np.array([times[k+1] - times[0] for k in range(num_spies - 1)])
         
         for node in G.nodes():
-            if (node in spies) or (self.active_nodes[node] == -1):
+            # print('Node ',node,' : active',self.active_nodes[node])
+            if (node in spies) or (self.active_nodes[node] < 0):
                 continue
             spanning_tree = nx.bfs_tree(G, node).to_undirected()
             
@@ -150,13 +141,13 @@ class OptimalEstimator(Estimator):
                 max_indices = [node]
             elif (max_likelihood == likelihood):
                 max_indices.append(node)
-        # print('the candidates are ', max_indices)
+        print('the candidates are ', max_indices)
         # print('the spies are ', spies)
         if max_indices:
             return random.choice(max_indices)
         else:
             print('No valid nodes!')
-            return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] == 1])
+            return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] >= 0])
         
     def compute_lambda_inv(self, node, spies, spanning_tree = None):
         num_spies = len(spies)
@@ -224,13 +215,14 @@ class FirstSpyEstimator(Estimator):
                 spies = [item[1] for item in points]
                 if (self.active_nodes is not None):
                     for spy in spies:
-                        options = [option for option in self.adjacency[spy] if self.active_nodes[option]==1]
+                        options = [option for option in self.adjacency[spy] if self.active_nodes[option] >= 0]
                         if options:
                             estimate = random.choice(options)
                             return estimate
         for spy in spies:
-            options = [option for option in self.adjacency[spy] if option not in spies]
+            options = [option for option in self.adjacency[spy] if self.active_nodes[option] >= 0]
             if options:
                 estimate = random.choice(options)
-                break
+                return estimate
+        print('no spies!')
         return estimate

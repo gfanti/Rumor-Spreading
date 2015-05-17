@@ -6,6 +6,7 @@ from scipy import stats
 import numpy as np
 import utilities
 import networkx
+import time
 # import cProfile
 
 #Semi-distributed adaptive diffusion over regular trees (uses two timesteps)
@@ -73,7 +74,7 @@ def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
 
 #Distributed diffusion over random trees
 def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
-                                          spy_probability = 0.0):
+                                          spy_probability = 0.0, est_times = None):
     '''infect_nodes_diffusion_tree runs the spreading model over a regular
     tree.
     
@@ -100,7 +101,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     who_infected = [[]]
     degrees = degrees_rv.rvs(size=1).tolist()
     timestamps = [0]
-    active_nodes = [1] # marks which nodes are candidate sources
+    active_nodes = [0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
     spies = []
     active_spies = []
     while boundary_nodes:
@@ -131,13 +132,13 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # new_spies = [spy for spy in new_spies if timestamps[spy] <= max_time]
             spies += new_spies
             # mark whether the new additions are possible candidates
-            if active_nodes[node] == -1:
-                active_nodes += [-1 for neighbor in neighbors]
+            if active_nodes[node] < 0:
+                active_nodes += [active_nodes[node] for item in neighbor_times]
             else:
-                active_nodes += [1 for neighbor in neighbors]
-                for neighbor in neighbors:
+                active_nodes += neighbor_times
+                for (neighbor,neighbor_time) in zip(neighbors,neighbor_times):
                     if neighbor in new_spies:
-                        active_nodes[neighbor] = -1
+                        active_nodes[neighbor] = -neighbor_time
                         active_spies += [neighbor]
             
             # boundary_nodes += [neighbor for neighbor in neighbors if timestamps[neighbor] <= max_time]
@@ -151,46 +152,83 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         
         num_infected = len(who_infected)
         # CHANGE THIS!
-        # print('num_infected: ', num_infected)
         # print('timestamps: ', timestamps, len(timestamps))
         # print('spies are', spies)
         # timesteps += 1
+    print('num_infected: ', num_infected)
+    
+    
         
-    # Remove the nodes with time greater than max_time
+    # Remove the nodes with time greater than current timestamp
         
-    spies_timestamps = [timestamps[j] for j in active_spies]
-    # spies_timestamps = [timestamps[j] for j in spies]
     adjacency = [set(item) for item in who_infected]
-    # print('spies:',spies)
-    # print('active spies:', active_spies)
-    # print('active spies timestamps', spies_timestamps)
-    # print('adjacnecy', [adjacency[i] for i in active_spies])
-    # print('active nodes: ', [item for item in range(len(active_nodes)) if active_nodes[item]==1])
-    
-    spy_active_nodes = [1 if i not in spies else -1 for i in range(num_infected)]
-    
-    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
-    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
-    # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
-    # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
-    estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes=active_nodes)
-    spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes=active_nodes)
-    if active_spies:
-        ml_estimate = estimator.estimate_source()
-        spy_estimate = spy_estimator.estimate_source()
-    else:
-        # choose a random node
-        ml_estimate = random.randint(0,num_infected - 1)
-        spy_estimate = ml_estimate
-    hop_distance = networkx.shortest_path_length(estimator.graph, source, ml_estimate)
-    spy_hop_distance = networkx.shortest_path_length(estimator.graph, source, spy_estimate)
+    nodes = [i for i in range(num_infected)]
 
-    print('True source: ', source, ' estimate: ', ml_estimate)
-    ml_correct.append(ml_estimate == source)
-    hop_distances.append(hop_distance)
-    spy_correct.append(spy_estimate == source)
-    spy_hop_distances.append(spy_hop_distance)
-    tot_num_infected.append(num_infected)
+    # for node in nodes:
+        # print('Node ',node,': ',timestamps[node])
+
+    for est_time in est_times:
+        
+        reached_spies = [spy for spy in active_spies if timestamps[spy] <= est_time]
+        spies_timestamps = [timestamps[j] for j in active_spies if timestamps[j] <= est_time]
+        # current_active_nodes = [item if ((abs(item) <= est_time) and (n not in active_spies)) else abs(item) for (item,n) in zip(active_nodes,nodes)]
+        if len(reached_spies) == 0:
+            current_active_nodes = [1 if n not in spies else -1 for n in nodes]
+        else:
+            current_active_nodes = active_nodes
+        print('est time',est_time)
+        # print('original active_nodes',active_nodes)
+        # print('new_active_nodes', current_active_nodes)
+        # spies_timestamps = [timestamps[j] for j in spies]
+        # print('spies:',spies)
+        # print('active spies:', active_spies)
+        # print('active spies timestamps', spies_timestamps)
+        # print('adjacnecy', [adjacency[i] for i in active_spies])
+        # print('active nodes: ', [item for item in range(len(active_nodes)) if active_nodes[item]==1])
+        
+        # spy_active_nodes = [1 if i not in spies else -1 for i in range(num_infected)]
+        # print('Considering ',len(reached_spies), ' spies: ',reached_spies)
+  
+  
+        # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
+        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
+        # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
+        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
+        # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
+        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
+        estimator = estimation_spies.OptimalEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
+        spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
+        old_spy_estimate = -1
+        if active_spies:
+            start = time.time()
+            ml_estimate = estimator.estimate_source()
+            # print('Surrounded? ',not any([current_active_nodes[n]>0 for n in estimator.graph if len(estimator.adjacency[n])==1]))
+            print('ml est', ml_estimate)
+            # print('spies:        ',reached_spies)
+            # print('all spies:    ',spies)
+            # print('active spies: ',active_spies)
+            # estimator2.draw_graph()
+            
+            spy_estimate = spy_estimator.estimate_source()
+            if spy_estimate != old_spy_estimate and old_spy_estimate != -1:
+                print('CHANGED THE ESTIMATE!')
+                exit(0)
+            old_spy_estimate = spy_estimate
+            end = time.time()
+            print('elapsed:',end-start)
+        else:
+            # choose a random node
+            ml_estimate = random.randint(0,num_infected - 1)
+            spy_estimate = ml_estimate
+        hop_distance = networkx.shortest_path_length(estimator.graph, source, ml_estimate)
+        spy_hop_distance = networkx.shortest_path_length(estimator.graph, source, spy_estimate)
+
+        print('True source: ', source, ' estimate: ', ml_estimate)
+        ml_correct.append(ml_estimate == source)
+        hop_distances.append(hop_distance)
+        spy_correct.append(spy_estimate == source)
+        spy_hop_distances.append(spy_hop_distance)
+        tot_num_infected.append(num_infected)
     # max_time = max(spies_timestamps)
     # # print('spies_timestamps:', spies_timestamps)
     # print('spy timestamps', spies_timestamps)
