@@ -5,7 +5,7 @@ import random
 from scipy import stats
 import numpy as np
 import utilities
-import networkx
+import networkx as nx
 import time
 # import cProfile
 
@@ -120,7 +120,9 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         if num_to_infect > 0:
             # timestamps += [timesteps for j in range(num_to_infect)]
             # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
-            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
+            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(20, 5, num_to_infect)]
             # neighbors = [neighbors[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbor_times = [neighbor_times[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbors = ([k+len(degrees) for k in range(len(neighbor_times))])
@@ -151,10 +153,14 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
                 
         
         num_infected = len(who_infected)
+        # print('infected',num_infected)
+        # print('who infected',who_infected)
+        # print('bondarey nodes',boundary_nodes)
         # CHANGE THIS!
         # print('timestamps: ', timestamps, len(timestamps))
         # print('spies are', spies)
         # timesteps += 1
+        
     print('num_infected: ', num_infected)
     
     
@@ -166,11 +172,14 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
 
     # for node in nodes:
         # print('Node ',node,': ',timestamps[node])
-
     for est_time in est_times:
         
         reached_spies = [spy for spy in active_spies if timestamps[spy] <= est_time]
+        print('reached ',len(reached_spies), ' spies')
+        
+            
         spies_timestamps = [timestamps[j] for j in active_spies if timestamps[j] <= est_time]
+        
         # current_active_nodes = [item if ((abs(item) <= est_time) and (n not in active_spies)) else abs(item) for (item,n) in zip(active_nodes,nodes)]
         if len(reached_spies) == 0:
             current_active_nodes = [1 if n not in spies else -1 for n in nodes]
@@ -199,6 +208,10 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         estimator = estimation_spies.OptimalEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
         spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
         old_spy_estimate = -1
+        
+        # for spy in reached_spies:
+            # print('spy',spy,' has time ',timestamps[spy],' and is ',nx.shortest_path_length(estimator.graph,0,spy),' hops away')
+        
         if active_spies:
             start = time.time()
             ml_estimate = estimator.estimate_source()
@@ -207,7 +220,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # print('spies:        ',reached_spies)
             # print('all spies:    ',spies)
             # print('active spies: ',active_spies)
-            # estimator2.draw_graph()
+            print('timestamps',spies_timestamps)
+            # estimator.draw_graph()
             
             spy_estimate = spy_estimator.estimate_source()
             if spy_estimate != old_spy_estimate and old_spy_estimate != -1:
@@ -220,8 +234,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # choose a random node
             ml_estimate = random.randint(0,num_infected - 1)
             spy_estimate = ml_estimate
-        hop_distance = networkx.shortest_path_length(estimator.graph, source, ml_estimate)
-        spy_hop_distance = networkx.shortest_path_length(estimator.graph, source, spy_estimate)
+        hop_distance = nx.shortest_path_length(estimator.graph, source, ml_estimate)
+        spy_hop_distance = nx.shortest_path_length(estimator.graph, source, spy_estimate)
 
         print('True source: ', source, ' estimate: ', ml_estimate)
         ml_correct.append(ml_estimate == source)

@@ -120,7 +120,8 @@ class OptimalEstimator(Estimator):
             # print('Node ',node,' : active',self.active_nodes[node])
             if (node in spies) or (self.active_nodes[node] < 0):
                 continue
-            spanning_tree = nx.bfs_tree(G, node).to_undirected()
+            # spanning_tree = nx.bfs_tree(G, node).to_undirected()
+            spanning_tree = G # only bc we're on trees!
             
                     
             mu = np.array([2.0*(nx.shortest_path_length(spanning_tree, node, spies[k+1]) - 
