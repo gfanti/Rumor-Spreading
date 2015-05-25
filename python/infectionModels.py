@@ -121,7 +121,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # timestamps += [timesteps for j in range(num_to_infect)]
             # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
             # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
-            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
+            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 1.7321, num_to_infect)] # Truncated gaussian
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
             # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(20, 5, num_to_infect)]
             # neighbors = [neighbors[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbor_times = [neighbor_times[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
@@ -220,7 +221,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # print('spies:        ',reached_spies)
             # print('all spies:    ',spies)
             # print('active spies: ',active_spies)
-            print('timestamps',spies_timestamps)
+            # print('timestamps',spies_timestamps)
             # estimator.draw_graph()
             
             spy_estimate = spy_estimator.estimate_source()

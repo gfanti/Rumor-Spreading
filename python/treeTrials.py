@@ -12,6 +12,7 @@ if __name__ == "__main__":
     trials = args.get('trials', 1)
     write_results = args.get('write_results', False)
     alt = args.get('alt', False)
+    run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
     spy_probability = args.get('spy_probability')
     
@@ -27,8 +28,12 @@ if __name__ == "__main__":
     xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)]
-    max_times = [12 for i in range(1)]
-    est_times = [6,8,10,12,14,16]
+    max_times = [16 for i in range(1)]
+    # est_times = [6,8,10,12,14,16] # d=3
+    est_times = [8,10,11,12] # d=3
+    # est_times = [6,8,9,10,11] # d=4
+    # est_times = [6,7,8,9] # d=5
+    # est_times = [50,100,150,200] # d=2
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
@@ -68,11 +73,11 @@ if __name__ == "__main__":
                     if isinstance(pk, float):
                         xk_str = str(xk[0])
                         pk_str = str(pk)
-                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+str(spy_probability) + '.mat'
+                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+str(spy_probability) + '_run_' + str(run) + '.mat'
                     else:
                         xk_str = [str(i) for i in xk]
                         pk_str = [str(round(i,1)) for i in pk]
-                        filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+str(spy_probability) + '.mat'
+                        filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+str(spy_probability) + '_run_' + str(run) + '.mat'
                     io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
                                          'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
                                          'num_infected':np.array(num_infected)})

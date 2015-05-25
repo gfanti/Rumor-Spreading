@@ -31,7 +31,11 @@ def parse_args(args):
             spy_probability = float(args.spy_probability)
         else: 
             spy_probability = 0.0
-        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability}
+        if args.run:
+            run = args.run
+        else:
+            run = 0
+        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability,'run':run}
     if args.alt:
         alt = bool(args.alt)
     else:
