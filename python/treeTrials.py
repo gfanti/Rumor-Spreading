@@ -27,8 +27,8 @@ if __name__ == "__main__":
     xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)]
-    max_times = [12 for i in range(1)]
-    est_times = [6,8,10,12,14,16]
+    max_times = [13 for i in range(1)]
+    est_times = [6,7,8,10,12,13]
     
     # xks = [np.arange(2,3)]
     # pks = [(1.0)]
