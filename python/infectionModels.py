@@ -91,19 +91,16 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     '''
     timesteps = 1;
     
-    ml_correct = []
-    spy_correct = []
-    hop_distances = []
-    spy_hop_distances = []
+    ml_correct, spy_correct, lei_correct = [],[],[]
+    hop_distances, spy_hop_distances,lei_hop_distances = [],[],[]
     tot_num_infected = []
     num_infected = 0
     boundary_nodes = [source]
     who_infected = [[]]
     degrees = degrees_rv.rvs(size=1).tolist()
-    timestamps = [0]
-    active_nodes = [0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
-    spies = []
-    active_spies = []
+    timestamps, active_nodes = [0],[0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
+    spies, active_spies, infectors = [],[],[]
+
     while boundary_nodes:
     # while timesteps <= max_time:
     # while (1 in [active_nodes[item] for item in boundary_nodes]) and timesteps < 10:
@@ -118,22 +115,21 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         # print('num to infect', num_to_infect, 'out of ', num_uninfected_neighbors,'\n')
         # print('who_infected before: ', who_infected)
         if num_to_infect > 0:
-            # timestamps += [timesteps for j in range(num_to_infect)]
-            # timestamps += [j + timestamps[node] for j in np.random.exponential(p, num_to_infect)]
             # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
-            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 1.7321, num_to_infect)] # Truncated gaussian
-            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 1.7321, num_to_infect)] # Truncated gaussian
+            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
             # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(20, 5, num_to_infect)]
-            # neighbors = [neighbors[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbor_times = [neighbor_times[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbors = ([k+len(degrees) for k in range(len(neighbor_times))])
             
             timestamps += neighbor_times
             
             degrees, who_infected = utilities.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
+            # Choose spies with probability spy_probability
             new_spies = utilities.update_spies_diffusion(neighbors, spy_probability=spy_probability)
-            # new_spies = [spy for spy in new_spies if timestamps[spy] <= max_time]
             spies += new_spies
+            # update the infectors
+            infectors += [node for item in neighbors if item in spies]
             # mark whether the new additions are possible candidates
             if active_nodes[node] < 0:
                 active_nodes += [active_nodes[node] for item in neighbor_times]
@@ -200,24 +196,27 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         # print('Considering ',len(reached_spies), ' spies: ',reached_spies)
   
   
-        # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
+        # estimator = estimation_spies.EpflEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
         # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
-        # estimator = estimation_spies.OptimalEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
+        # estimator = estimation_spies.EpflEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
         # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
-        # estimator = estimation_spies.OptimalEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
+        # estimator = estimation_spies.EpflEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
         # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
-        estimator = estimation_spies.OptimalEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
+        estimator = estimation_spies.EpflEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
         spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
-        old_spy_estimate = -1
+        lei_estimator = estimation_spies.LeiYingEstimator(adjacency, reached_spies, spies_timestamps, infectors=infectors, active_nodes=current_active_nodes)
         
         # for spy in reached_spies:
             # print('spy',spy,' has time ',timestamps[spy],' and is ',nx.shortest_path_length(estimator.graph,0,spy),' hops away')
         
         if active_spies:
+            mean = 1.0 / p
             start = time.time()
-            ml_estimate = estimator.estimate_source()
+            ml_estimate = estimator.estimate_source(mu_delay=mean)
             # print('Surrounded? ',not any([current_active_nodes[n]>0 for n in estimator.graph if len(estimator.adjacency[n])==1]))
             print('ml est', ml_estimate)
+            end = time.time()
+            print('ml elapsed:',end-start)
             # print('spies:        ',reached_spies)
             # print('all spies:    ',spies)
             # print('active spies: ',active_spies)
@@ -225,24 +224,33 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
             # estimator.draw_graph()
             
             spy_estimate = spy_estimator.estimate_source()
-            if spy_estimate != old_spy_estimate and old_spy_estimate != -1:
-                print('CHANGED THE ESTIMATE!')
-                exit(0)
-            old_spy_estimate = spy_estimate
+            start = time.time()
+            print('spy elapsed:',start-end)
+            # lei_estimate = lei_estimator.estimate_source(mu_delay=mean)
+            lei_estimate = 0
             end = time.time()
-            print('elapsed:',end-start)
+            print('lei elapsed:',end - start)
+            
+            
         else:
             # choose a random node
             ml_estimate = random.randint(0,num_infected - 1)
             spy_estimate = ml_estimate
+            lei_estimate = ml_estimate
         hop_distance = nx.shortest_path_length(estimator.graph, source, ml_estimate)
         spy_hop_distance = nx.shortest_path_length(estimator.graph, source, spy_estimate)
+        lei_hop_distance = nx.shortest_path_length(estimator.graph, source, lei_estimate)
 
-        print('True source: ', source, ' estimate: ', ml_estimate)
+        print('True source: ', source, ' EPFL estimate: ', ml_estimate)
+        print('True source: ', source, ' spy estimate: ', spy_estimate)
+        print('True source: ', source, ' Lei Ying estimate: ', lei_estimate)
+        
         ml_correct.append(ml_estimate == source)
         hop_distances.append(hop_distance)
         spy_correct.append(spy_estimate == source)
         spy_hop_distances.append(spy_hop_distance)
+        lei_correct.append(lei_estimate == source)
+        lei_hop_distances.append(lei_hop_distance)
         tot_num_infected.append(num_infected)
     # max_time = max(spies_timestamps)
     # # print('spies_timestamps:', spies_timestamps)
@@ -252,7 +260,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         # t_o_spies = [active_spies[i] for i in range(len(active_spies)) if spies_timestamps[i] < t_o]
         # if t_o_spies:
             # # print('spy timestamps', spies_timestamps)
-            # estimator = estimation_spies.OptimalEstimator(adjacency, t_o_spies, t_o_timestamps, active_nodes)
+            # estimator = estimation_spies.EpflEstimator(adjacency, t_o_spies, t_o_timestamps, active_nodes)
             # ml_estimate = estimator.estimate_source()
         # else:
             # ml_estimate = -1
@@ -262,8 +270,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         
     print('Num spies are: ', len(spies), ' out of ', num_infected)
     print('\n\n')
-    infection_details = (tot_num_infected, who_infected, hop_distances, spy_hop_distances)
-    results = (ml_correct, spy_correct)
+    infection_details = (tot_num_infected, who_infected, hop_distances, spy_hop_distances, lei_hop_distances)
+    results = (ml_correct, spy_correct, lei_correct)
     return infection_details, results
     
 # Semi-distributed adaptive diffusion over irregular trees (uses 1 timestep, this

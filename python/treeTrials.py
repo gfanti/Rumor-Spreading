@@ -15,32 +15,33 @@ if __name__ == "__main__":
     run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
     spy_probability = args.get('spy_probability')
+    delay_parameter = args.get('delay_parameter')
     
-    # Irregular infinite graph
+    # ----Irregular tree graph-----
     # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
     # pks = [(0.5, 0.5), (0.5, 0.25, 0.25), (0.9, 0.1)]
     # max_times = [5, 4, 4]
     
+    # ----Regular tree graph, diffusion-------
     # Regular tree sizes:
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
     xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
-    pks = [(1.0) for i in range(1)]
-    max_times = [16 for i in range(1)]
+    pks = [(1.0) for i in range(1)] 
+    
+    # est_times: the timestamps at which to estimate the source
     # est_times = [6,8,10,12,14,16] # d=3
-    est_times = [8,10,11,12] # d=3
+    est_times = [12] # d=3
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
     
-    # xks = [np.arange(2,3)]
-    # pks = [(1.0)]
-    # max_times = [10]
-    # additional_time = 30
+    max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
+    
     max_infection = 0 #min(xks) - 1
-    additional_time = 0
+    additional_time = 0  # collect additional_time more estimates after the first snapshot
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
         print('Checking xks = ',xk)
@@ -48,8 +49,8 @@ if __name__ == "__main__":
         max_infection = max_infection + 1
         
         print('Diffusion: ', diffusion)
-        
-        # Check if the tree is regular
+       
+        # handle the different formats that are tolerated for irregular vs regular trees
         if isinstance(pk, list) == 1:
             if diffusion:
                 print('Diffusion code')
@@ -64,22 +65,23 @@ if __name__ == "__main__":
         else:
             if diffusion:
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
-                                                                    degrees_rv, method=4, p=0.5, 
+                                                                    degrees_rv, method=4, p=delay_parameter, 
                                                                     spy_probability = spy_probability,
                                                                     est_times = est_times)[:2]
-                pd_ml, hop_distances, pd_spy, spy_hop_distances = results
+                pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
                 print('hop distances',hop_distances)
                 if write_results:
                     if isinstance(pk, float):
                         xk_str = str(xk[0])
                         pk_str = str(pk)
-                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+str(spy_probability) + '_run_' + str(run) + '.mat'
+                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+str(spy_probability) + '_q_' + str(delay_parameter) + '_run_' + str(run) + '.mat'
                     else:
                         xk_str = [str(i) for i in xk]
                         pk_str = [str(round(i,1)) for i in pk]
                         filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+str(spy_probability) + '_run_' + str(run) + '.mat'
                     io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
                                          'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
+                                         'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
                                          'num_infected':np.array(num_infected)})
                     continue
             # Check for weighted spreading
