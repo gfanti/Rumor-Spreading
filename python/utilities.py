@@ -12,6 +12,7 @@ def parse_args(args):
     parser.add_argument("-w", '--write_results', help = "Write results to file? (default: false)", action = 'store_true')
     parser.add_argument("-d", '--diffusion', help = "Spread using regular diffusion? (default: false)", action = 'store_true')
     parser.add_argument("-s", '--spy_probability', help = "Probability of a node being a spy (default: 0)", type = float, default = 0.0)
+    parser.add_argument("-q", '--delay_parameter', help = "Probability of passing the message in a timestep (default: 0)", type = float, default = 0.5)
     parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
     parser.add_argument("--db", nargs = '?', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'none')
     parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
@@ -31,7 +32,15 @@ def parse_args(args):
             spy_probability = float(args.spy_probability)
         else: 
             spy_probability = 0.0
-        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability}
+        if args.run:
+            run = args.run
+        else:
+            run = 0
+        if args.delay_parameter:
+            delay_parameter = float(args.delay_parameter)
+        else:
+            delay_parameter = 0.5
+        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability,'run':run, 'delay_parameter':delay_parameter}
     if args.alt:
         alt = bool(args.alt)
     else:

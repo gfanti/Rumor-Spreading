@@ -6,22 +6,22 @@ import exportGraph
 import random
 
 '''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
-def runDataset(filename, min_degree, trials, max_time=100, max_infection = -1, max_num_nodes = 4941):
-    # Run dataset runs a spreading algorithm over a dataset. 
-    # Inputs:
-    #
-    #       filename:               name of the file containing the data
-    #       min_degree:             remove all nodes with degree lower than min_degree
-    #       trials:                 number of trials to run
-    #       max_time(opt):          the maximum number of timesteps to use
-    #       max_infection(opt):     the maximum number of nodes a node can infect in any given timestep
-    #
-    # Outputs:
-    #
-    #       p:                      average proportion of nodes reached by the algorithm 
-    #       num_infected:           total number of nodes infected by the algorithm
-    #
-    # NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one.
+def run_dataset(filename, min_degree, trials, max_time=100, max_infection = -1, max_num_nodes = 4941):
+    '''Run dataset runs a spreading algorithm over a dataset. 
+    Inputs:
+    
+          filename:               name of the file containing the data
+          min_degree:             remove all nodes with degree lower than min_degree
+          trials:                 number of trials to run
+          max_time(opt):          the maximum number of timesteps to use
+          max_infection(opt):     the maximum number of nodes a node can infect in any given timestep
+    
+    Outputs:
+    
+          p:                      average proportion of nodes reached by the algorithm 
+          num_infected:           total number of nodes infected by the algorithm
+    
+    NB: If max_infection is not set, then we'll run the deterministic algorihtm. Otherwise, it's the message passing one. '''
     
     adjacency = buildGraph.buildDatasetGraph(filename, min_degree, max_num_nodes)
     num_nodes = len(adjacency)
@@ -88,6 +88,11 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                                                        2 = pre-planned spreading
                                                        3 = Old adaptive diffusion (i.e. line algorithm)
                                                        4 = regular diffusion (symmetric in all directions)
+        known_degrees           the degrees of nodes in the tree for likelihood computation
+        additional_time         the number of additional estimates to make after the initial snapshot
+        p                       probability with which diffusion passes the message in a timestep
+        spy_probability         probability of a node being a spy
+        est_times               times at which we estimate the source (must be <= max_time)
     
     Outputs:
     
@@ -98,6 +103,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     
     pd_ml = [0 for i in range(max_time)] # Maximum likelihood
     pd_spy = [0 for i in range(max_time)] # Maximum likelihood
+    pd_lei = [0 for i in range(max_time)] # Maximum likelihood
     additional_pd_mean = [0 for i in range(additional_time)] # Pd from additional measurements
     pd_rc = [0 for i in range(max_time)] # Rumor centrality
     pd_jc = [0 for i in range(max_time)] # Jordan centrality
@@ -105,43 +111,42 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     avg_num_infected = [0 for i in range(max_time)]
     avg_hop_distance = [0 for i in range(max_time)]
     avg_spy_hop_distance = [0 for i in range(max_time)]
+    avg_lei_hop_distance = [0 for i in range(max_time)]
     
     for trial in range(trials):
         if trial % 10 == 0:
             print('\nTrial ',trial, ' / ',trials-1)
         source = 0
-        # Infect nodes with adaptive diffusion over an irregular tree, and take multiple snapshots
-        if method == 0:
+        if method == 0:      # Infect nodes with adaptive diffusion over an irregular tree (possibly with multiple snapshots)
             infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                                                                                                  degrees_rv, additional_time = additional_time)
             num_infected, infection_pattern, who_infected, additional_hops = infection_details
             # print(additional_hops)
             additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
-        # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
-        elif method == 1:
+        elif method == 1:    # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
             infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, degrees_rv, True)
             num_infected, infection_pattern, who_infected = infection_details
-        # Infect nodes with adaptive diffusion over an irregular tree whose structure is pre-determined
-        elif method == 2:
+        elif method == 2:    # Infect nodes with adaptive diffusion over a pre-determined irregular tree
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
             num_infected, infection_pattern, who_infected = infection_details
             pd_rand_leaf = [i+j for (i,j) in zip(pd_rand_leaf, rand_leaf_correct)]
-        # Infect nodes with adaptive diffusion over a line
-        elif method == 3:
+        elif method == 3:   # Infect nodes with adaptive diffusion over a line
             infection_details, results = infectionModels.infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv)
             num_infected, who_infected = infection_details
             pd_jc = [i+j for (i,j) in zip(pd_jc, results[0])]
             pd_rc = [i+j for (i,j) in zip(pd_rc, results[1])]
             # We don't actually compute the ML estimate here because it's computationally challenging
             ml_correct = pd_ml 
-        elif method == 4:
+        elif method == 4:   # infect nodes with regular diffusion
             infection_details, results = infectionModels.infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p, spy_probability,
                                                                                                est_times = est_times)
-            ml_correct, spy_correct = results
-            num_infected, who_infected, hop_distances, spy_hop_distances = infection_details
+            ml_correct, spy_correct, lei_correct = results
+            num_infected, who_infected, hop_distances, spy_hop_distances, lei_hop_distances = infection_details
             avg_hop_distance  = [i+j for (i,j) in zip(avg_hop_distance, hop_distances)]
             avg_spy_hop_distance  = [i+j for (i,j) in zip(avg_spy_hop_distance, spy_hop_distances)]
+            avg_lei_hop_distance  = [i+j for (i,j) in zip(avg_lei_hop_distance, lei_hop_distances)]
             pd_spy = [i+j for (i,j) in zip(pd_spy, spy_correct)]
+            pd_lei = [i+j for (i,j) in zip(pd_lei, lei_correct)]
         # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
         # unpack the results
         pd_ml = [i+j for (i,j) in zip(pd_ml, ml_correct)]
@@ -165,10 +170,13 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     elif method == 4:
         pd_spy = [float(i) / trials for i in pd_spy]
         avg_spy_hop_distance = [float(i) / trials for i in avg_spy_hop_distance]
+        pd_lei = [float(i) / trials for i in pd_lei]
+        avg_lei_hop_distance = [float(i) / trials for i in avg_lei_hop_distance]
         avg_hop_distance = [float(i) / trials for i in avg_hop_distance]
         print('pd_ml: ', pd_ml, 'avg_hop_distance', avg_hop_distance)
         print('pd_spy: ', pd_spy, 'avg_spy_hop_distance', avg_spy_hop_distance)
-        results = (pd_ml, avg_hop_distance, pd_spy, avg_spy_hop_distance)
+        print('pd_lei: ', pd_lei, 'avg_lei_hop_distance', avg_lei_hop_distance)
+        results = (pd_ml, avg_hop_distance, pd_spy, avg_spy_hop_distance, pd_lei, avg_lei_hop_distance)
 
     # return avg_num_infected, pd_ml, pd_rand_leaf
     return avg_num_infected, results

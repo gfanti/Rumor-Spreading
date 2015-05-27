@@ -35,7 +35,7 @@ if __name__ == "__main__":
     max_infection = -1
     
     start = time.clock()
-    p_fb, num_infected, results = runExperiments.runDataset(filename, min_degree, trials, max_time, max_infection, 10000)
+    p_fb, num_infected, results = runExperiments.run_dataset(filename, min_degree, trials, max_time, max_infection, 10000)
     print('Experiment took ', time.clock() - start, ' seconds.')
     pd_jordan, pd_rumor, pd_ml_leaf, ml_leaf_dists = results
     print('Facebook result: ',p_fb,num_infected)
