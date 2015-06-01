@@ -31,16 +31,17 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([3,4]) for i in range(1)]
+    xks = [np.array([5]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
-    pks = [(.5,.5) for i in range(1)] 
+    pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
     # est_times = [6,8,10,12,14,16] # d=3
-    est_times = [16] # d=3
+    # est_times = [16] # Adaptive diffusion irregular tree trials
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
+    est_times = [1,2,3,4,5]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
