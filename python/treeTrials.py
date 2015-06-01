@@ -84,7 +84,8 @@ if __name__ == "__main__":
                     else:
                         xk_str = [str(i) for i in xk]
                         pk_str = [str(round(i,1)) for i in pk]
-                        filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+str(spy_probability) + '_run_' + str(run) + '.mat'
+                        prob = str(Decimal(spy_probability).quantize(Decimal('.01')))
+                        filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+ prob + '_run_' + str(run) + '.mat'
                     io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
                                          'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
                                          'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
