@@ -5,6 +5,7 @@ import random
 from scipy import stats
 import numpy as np
 import utilities
+import infectionUtils
 import networkx as nx
 import time
 from infectionUtils import *
@@ -41,7 +42,7 @@ def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
     
         # in odd timesteps, choose a direction to expand in
         if timesteps == 1:
-            adjacency = utilities.infect_nodes_infinite_tree(source, 1, adjacency)
+            adjacency = infectionUtils.infect_nodes_infinite_tree(source, 1, adjacency)
             virtual_source_candidate = 1
             timesteps += 1
             continue
@@ -96,7 +97,8 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, q = 0.5,
     num_infected = 0
     boundary_nodes = [source]
     who_infected = [[]]
-    degrees = degrees_rv.rvs(size=1).tolist()
+    # degrees = degrees_rv.rvs(size=1).tolist()
+    degrees = degrees_rv.draw_values(1)
     timestamps, active_nodes = [0],[0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
     spies, active_spies, infectors = [],[],[]
 
@@ -123,7 +125,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, q = 0.5,
             
             timestamps += neighbor_times
             
-            degrees, who_infected = utilities.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
+            degrees, who_infected = infectionUtils.infect_nodes_randtree(node, neighbors, degrees, degrees_rv, who_infected)[:2]
             # Choose spies with probability spy_probability
             new_spies = utilities.update_spies_diffusion(neighbors, spy_probability=spy_probability)
             spies += new_spies
@@ -192,7 +194,8 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
     num_infected = 0
     
     who_infected = [[]]
-    degrees = degrees_rv.rvs(size=1).tolist()
+    # degrees = degrees_rv.rvs(size=1).tolist()
+    degrees = degrees_rv.draw_values(1)
     
     while timesteps < max_time:
     
@@ -202,7 +205,7 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             previous_vs = 0
             
             # infect twice in one direction, always
-            degrees, who_infected = utilities.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
+            degrees, who_infected = infectionUtils.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
             infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)[:2]
             m = 1       # the virtual source is always going to be 1 hop away from the true source
             
@@ -310,7 +313,8 @@ def infect_nodes_up_down_irregular(source, max_time, degrees_rv, spy_probability
     num_infected = 0
     
     who_infected = [[]]
-    degrees = degrees_rv.rvs(size=1).tolist()
+    # degrees = degrees_rv.rvs(size=1).tolist()
+    degrees = degrees_rv.draw_values(1)
     timestamps, active_nodes = [0],[0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
     spies, active_spies, infectors = [],[],[]
     spies_info = SpiesInformation([0],[],[source],[source],[None])
@@ -399,7 +403,7 @@ def infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection
             previous_vs = 0
             
             # infect twice in one direction, always
-            degrees, who_infected, known_degrees = utilities.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected, known_degrees)
+            degrees, who_infected, known_degrees = infectionUtils.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected, known_degrees)
             infection_pattern, who_infected, known_degrees = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected, known_degrees)
             m = 1       # the virtual source is always going to be 1 hop away from the true source
             
@@ -458,7 +462,8 @@ def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
     tot_num_infected = [0 for i in range(max_time)]
     
     who_infected = [[]]
-    degrees = degrees_rv.rvs(size=1).tolist()
+    # degrees = degrees_rv.rvs(size=1).tolist()
+    degrees = degrees_rv.draw_values(1)
             
     
     leaves = [source]
@@ -483,7 +488,7 @@ def infect_nodes_line_adaptive(source, max_time, max_infection, degrees_rv):
             # Figure out how many leaves actually got infected
             infections = sum([i < ratio for i in coin_flips])
             infected_neighbors = neighbors[:infections]
-            degrees, who_infected = utilities.infect_nodes_randtree(leaf, infected_neighbors, degrees, degrees_rv, who_infected)[:2]
+            degrees, who_infected = infectionUtils.infect_nodes_randtree(leaf, infected_neighbors, degrees, degrees_rv, who_infected)[:2]
             
             # Update the new leaves, and their distances from the source
             new_leaves += infected_neighbors
@@ -560,7 +565,7 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
             previous_vs = virtual_source
             
             # infect twice in one direction, always
-            infection_pattern, who_infected, dist_from_source = utilities.infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected, dist_from_source)
+            infection_pattern, who_infected, dist_from_source = infectionUtils.infect_nodes(source, virtual_source_candidate, infection_pattern, who_infected, dist_from_source)
             virtual_source_candidate = virtual_source_candidate[0]
             infection_pattern, who_infected, dist_from_source = pass_branch_message(source, virtual_source_candidate, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
             virtual_source = virtual_source_candidate

@@ -104,7 +104,7 @@ def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
             adjacency =  pass_branch_message_infinite_tree(recipient, neighbor, adjacency, max_degree)
             
     if leaf:
-        adjacency = utilities.infect_nodes_infinite_tree(recipient, max_degree-1, adjacency)
+        adjacency = infect_nodes_infinite_tree(recipient, max_degree-1, adjacency)
     return adjacency
 
 def pass_branch_message_randtree(source, recipient, degrees, degrees_rv, who_infected, known_degrees = []):
@@ -133,7 +133,7 @@ def pass_branch_message_randtree(source, recipient, degrees, degrees_rv, who_inf
     if leaf:
         to_infect = degrees[recipient] - 1
         neighbors = ([k+len(degrees) for k in range(to_infect)])
-        degrees,who_infected, known_degrees = utilities.infect_nodes_randtree(recipient, neighbors, degrees, degrees_rv, who_infected, known_degrees)
+        degrees,who_infected, known_degrees = infect_nodes_randtree(recipient, neighbors, degrees, degrees_rv, who_infected, known_degrees)
     return degrees, who_infected, known_degrees
     
         
@@ -168,7 +168,22 @@ def infect_nodes_up_down(node, num_to_infect, boundary, levels, degrees, degrees
     boundary += [child for child in children if levels[child] != 0]
     return degrees, who_infected, boundary, levels, children
     
+def infect_nodes_infinite_tree(node, num_children, adjacency):
+    '''
+    Infect nodes in an infinite tree given the adjacency matrix
     
+    Arguments:
+        node: The infecting node
+        num_children: The number of children to infect
+        adjacency: The adjacency matrix of the infected subgraph so far.
+    
+    Outputs:
+        The updated adjacency matrix.
+    '''
+
+    adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
+    adjacency = adjacency + [[node] for i in range(num_children)]
+    return adjacency
 
 def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected, dist_from_source):
     # pass an instruction to branch from the source to the leaves
@@ -198,8 +213,66 @@ def pass_branch_message(source, recipient, infection_pattern, adjacency, max_inf
         neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
         if len(neighbors) > max_infection:
             neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)
-        infection_pattern,who_infected, dist_from_source = utilities.infect_nodes(recipient, neighbors, infection_pattern, who_infected, dist_from_source)
+        infection_pattern,who_infected, dist_from_source = infect_nodes(recipient, neighbors, infection_pattern, who_infected, dist_from_source)
     return infection_pattern, who_infected, dist_from_source
+ 
+
+def infect_nodes(node, children, infection_pattern, who_infected, dist_from_source = []):
+    '''
+    Infects the nodes listed in children
+    Inputs
+          node:               source of the infection
+          children:           array of child ids
+          infection_pattern:  binary array describing whether each node is already infected or not
+          adjacency:          adjacency relations for the underlying network
+          who_infected:       adjacency relations for the infected subgraph
+    
+    Outputs
+          infection_pattern   (updated)
+          who_infected        (updated)
+    '''
+    
+    who_infected[node] += children
+    for child in children:
+        infection_pattern[child] = 1
+        who_infected[child] += [node]
+        if dist_from_source:
+            dist_from_source[child] = dist_from_source[node] + 1
+    return infection_pattern, who_infected, dist_from_source
+ 
+def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
+    '''
+    infect_nodes infects the nodes listed in children from 'node' over a random tree
+    Arguments:
+        node:               source of the infection
+        children:           array of child ids
+        degrees:            array of infected nodes' degrees
+        degrees_rv:         random variable describing the degree distribution
+        who_infected:       adjacency relations for the infected subgraph
+    
+    Outputs:
+        infection_pattern   (updated)
+        who_infected        (updated)
+    '''
+    
+    who_infected[node] += children
+    for child in children:
+        who_infected.append([node])
+    if not known_degrees:
+        # degrees += degrees_rv.rvs(size=len(children)).tolist()
+        degrees += degrees_rv.draw_values(len(children))
+    elif len(known_degrees) >= len(children):
+        degrees += known_degrees[0:len(children)]
+        known_degrees[0:len(children)] = []
+    else:
+        slack = len(children) - len(known_degrees)
+        degrees += known_degrees
+        known_degrees = []
+        # degrees += degrees_rv.rvs(size=slack).tolist()
+        degrees += degrees_rv.draw_values(slack)
+        
+    return degrees, who_infected, known_degrees
+    
     
     
 def estimate_source_spies(max_time, est_times, source, who_infected, num_infected, timestamps, spies,

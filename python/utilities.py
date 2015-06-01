@@ -44,7 +44,8 @@ def parse_args(args):
             delay_parameter = float(args.delay_parameter)
         else:
             delay_parameter = 0.5
-        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,'spy_probability':spy_probability,'run':run, 'delay_parameter':delay_parameter}
+        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,
+                'spy_probability':spy_probability,'run':run, 'delay_parameter':delay_parameter}
     if args.alt:
         alt = bool(args.alt)
     else:
@@ -119,77 +120,6 @@ def N_nodes(T,d):
     '''
     return N(T,d) + 1
 
-def infect_nodes_infinite_tree(node, num_children, adjacency):
-    '''
-    Infect nodes in an infinite tree given the adjacency matrix
-    
-    Arguments:
-        node: The infecting node
-        num_children: The number of children to infect
-        adjacency: The adjacency matrix of the infected subgraph so far.
-    
-    Outputs:
-        The updated adjacency matrix.
-    '''
-
-    adjacency[node] = adjacency[node] + [i for i in range(len(adjacency),len(adjacency)+num_children)]
-    adjacency = adjacency + [[node] for i in range(num_children)]
-    return adjacency
-
-def infect_nodes(node, children, infection_pattern, who_infected, dist_from_source = []):
-    '''
-    Infects the nodes listed in children
-    Inputs
-          node:               source of the infection
-          children:           array of child ids
-          infection_pattern:  binary array describing whether each node is already infected or not
-          adjacency:          adjacency relations for the underlying network
-          who_infected:       adjacency relations for the infected subgraph
-    
-    Outputs
-          infection_pattern   (updated)
-          who_infected        (updated)
-    '''
-    
-    who_infected[node] += children
-    for child in children:
-        infection_pattern[child] = 1
-        who_infected[child] += [node]
-        if dist_from_source:
-            dist_from_source[child] = dist_from_source[node] + 1
-    return infection_pattern, who_infected, dist_from_source
-    
-def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
-    '''
-    infect_nodes infects the nodes listed in children from 'node' over a random tree
-    Arguments:
-        node:               source of the infection
-        children:           array of child ids
-        degrees:            array of infected nodes' degrees
-        degrees_rv:         random variable describing the degree distribution
-        who_infected:       adjacency relations for the infected subgraph
-    
-    Outputs:
-        infection_pattern   (updated)
-        who_infected        (updated)
-    '''
-    
-    who_infected[node] += children
-    for child in children:
-        who_infected.append([node])
-    if not known_degrees:
-        degrees += degrees_rv.rvs(size=len(children)).tolist()
-    elif len(known_degrees) >= len(children):
-        degrees += known_degrees[0:len(children)]
-        known_degrees[0:len(children)] = []
-    else:
-        slack = len(children) - len(known_degrees)
-        degrees += known_degrees
-        known_degrees = []
-        degrees += degrees_rv.rvs(size=slack).tolist()
-        
-    return degrees, who_infected, known_degrees
-    
 def print_adjacency(adj, true):
     for i in range(len(adj)):
         if len(adj[i]) > 0:

@@ -77,7 +77,7 @@ def run_dataset(filename, min_degree, trials, max_time=100, max_infection = -1, 
     
 '''Run a random tree'''    
 def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0,
-                 p = 0.5, spy_probability = 0.0, est_times=None):
+                 p = 0.5, spy_probability = 0.0, use_adaptive=False, est_times=None):
     ''' Run dataset runs a spreading algorithm over a dataset. 
     
     Arguments:    
@@ -120,7 +120,8 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             print('\nTrial ',trial, ' / ',trials-1)
         source = 0
         if method == 0:      # Infect nodes with adaptive diffusion over an irregular tree (possibly with multiple snapshots)
-            if spy_probability > 0.0:
+            print('use adaptive is',use_adaptive)
+            if use_adaptive:
                 # WIth spies
                 
                 # Infect nodes
@@ -139,7 +140,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                 
                 # num_infected, who_infected, degrees = infection_details
             else:
-                # No spies
+                # regular diffusion
                 infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                                                                                                  degrees_rv, additional_time = additional_time, alt=False)
                 num_infected, infection_pattern, who_infected, additional_hops = infection_details

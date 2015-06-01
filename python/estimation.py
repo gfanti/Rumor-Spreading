@@ -1,6 +1,7 @@
 import numpy as np
 import random 
 import utilities
+import infectionUtils
 import math
 import scipy.misc as sc
 
@@ -215,13 +216,13 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     if not vs_path == 1:
         return likelihood
     current_vs = vs_path.pop(0)
-    new_infection_pattern, new_who_infected, tmp = utilities.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
+    new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
     
     # infect the neighbors of the new vs
     infected = [i for i in who_infected[current_vs]]
     infected.remove(source)
     
-    new_infection_pattern, new_who_infected, tmp = utilities.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
+    new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
     likelihood += infect_set_likelihood(infected, adjacency[current_vs], new_infection_pattern, max_infection)
     m = 1 # depth of tree
     
@@ -262,7 +263,7 @@ def pass_branch_message_likelihood(source, recipient, new_infection_pattern, adj
     if leaf:
         neighbors = [k for k in who_infected[recipient] if not k==source]
         likelihood += infect_set_likelihood(neighbors, adjacency[recipient], new_infection_pattern, max_infection)
-        new_infection_pattern, new_who_infected, tmp = utilities.infect_nodes(recipient, neighbors, new_infection_pattern, new_who_infected)
+        new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(recipient, neighbors, new_infection_pattern, new_who_infected)
         
     return new_infection_pattern, new_who_infected, likelihood
     

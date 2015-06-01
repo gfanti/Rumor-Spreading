@@ -4,7 +4,7 @@ from scipy import stats
 import runExperiments
 import utilities
 import sys
-from Multinomial import *
+from multinomial import *
 from decimal import Decimal
 
 if __name__ == "__main__":
@@ -17,6 +17,7 @@ if __name__ == "__main__":
     run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
     spy_probability = args.get('spy_probability')
+    use_adaptive = not diffusion
     if diffusion:
         delay_parameter = args.get('delay_parameter')
     
@@ -58,9 +59,9 @@ if __name__ == "__main__":
         if isinstance(pk, list) == 1:
             if diffusion:
                 print('Diffusion code')
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 4)[:2]
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 4)[:2]
             else:
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 3)
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 3)
             pd_rc, pd_jc = results
             
             if write_results:
@@ -69,7 +70,7 @@ if __name__ == "__main__":
         else:
             if diffusion:
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
-                                                                    degrees_rv, method=4, p=delay_parameter, 
+                                                                    degrees_rv2, method=4, p=delay_parameter, 
                                                                     spy_probability = spy_probability,
                                                                     est_times = est_times)[:2]
                 pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
@@ -90,16 +91,17 @@ if __name__ == "__main__":
                     continue
             # Check for weighted spreading
             elif alt:
-                num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 1)[:2]
+                num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 1)[:2]
             # Use regular spreading
             else:
                 if additional_time:
-                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0,
+                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
                                                                       additional_time = additional_time)[:2]
                     print("additional pd: ", additional_pd)
                 else:
                     num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
                                                                         spy_probability=spy_probability,
+                                                                        use_adaptive=use_adaptive,
                                                                         est_times = est_times)[:2]
                 pd_ml, additional_pd, hop_distances = results
             print("pd ML: ", pd_ml)
