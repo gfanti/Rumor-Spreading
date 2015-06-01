@@ -104,7 +104,10 @@ if __name__ == "__main__":
 
             if write_results:
                 xk_str = [str(i) for i in xk]
-                pk_str = [str(round(i,1)) for i in pk]
+                if isinstance(pk, (int, float, complex)):
+                    pk_str = str(round(pk,1))
+                else:
+                    pk_str = [str(round(i,1)) for i in pk]
                 if alt:
                     filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + '.mat'
                 else:
