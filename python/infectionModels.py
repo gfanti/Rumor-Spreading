@@ -7,6 +7,8 @@ import numpy as np
 import utilities
 import networkx as nx
 import time
+from infectionUtils import *
+from spies import *
 # import cProfile
 
 #Semi-distributed adaptive diffusion over regular trees (uses two timesteps)
@@ -72,8 +74,8 @@ def infect_nodes_adaptive_tree(source, adjacency, max_degree, max_time, alpha):
         
     return adjacency, num_infected
 
-#Distributed diffusion over random trees
-def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
+#Distributed diffusion over random trees, with iid spies in the network
+def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, q = 0.5,
                                           spy_probability = 0.0, est_times = None):
     '''infect_nodes_diffusion_tree runs the spreading model over a regular
     tree.
@@ -91,9 +93,6 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
     '''
     timesteps = 1;
     
-    ml_correct, spy_correct, lei_correct = [],[],[]
-    hop_distances, spy_hop_distances,lei_hop_distances = [],[],[]
-    tot_num_infected = []
     num_infected = 0
     boundary_nodes = [source]
     who_infected = [[]]
@@ -110,14 +109,14 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
         node = boundary_nodes.pop(0)
         # print('degrees[node]', node, len(degrees), len(who_infected))
         num_uninfected_neighbors = degrees[node] - len(who_infected[node])
-        # num_to_infect = np.random.binomial(num_uninfected_neighbors, p)
+        # num_to_infect = np.random.binomial(num_uninfected_neighbors, q)
         num_to_infect = num_uninfected_neighbors
         # print('num to infect', num_to_infect, 'out of ', num_uninfected_neighbors,'\n')
         # print('who_infected before: ', who_infected)
         if num_to_infect > 0:
-            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 0.5, num_to_infect)]
-            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/p, 1.7321, num_to_infect)] # Truncated gaussian
-            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(p, num_to_infect)]
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/q, 0.5, num_to_infect)]
+            # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(1.0/q, 1.7321, num_to_infect)] # Truncated gaussian
+            neighbor_times = [max(j,0) + timestamps[node] for j in np.random.geometric(q, num_to_infect)]
             # neighbor_times = [max(j,0) + timestamps[node] for j in np.random.normal(20, 5, num_to_infect)]
             neighbor_times = [neighbor_times[k] for k in range(num_to_infect) if neighbor_times[k] <= max_time]
             neighbors = ([k+len(degrees) for k in range(len(neighbor_times))])
@@ -150,129 +149,14 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, p = 0.5,
                 
         
         num_infected = len(who_infected)
-        # print('infected',num_infected)
-        # print('who infected',who_infected)
-        # print('bondarey nodes',boundary_nodes)
-        # CHANGE THIS!
-        # print('timestamps: ', timestamps, len(timestamps))
-        # print('spies are', spies)
-        # timesteps += 1
         
     print('num_infected: ', num_infected)
     
-    
-        
-    # Remove the nodes with time greater than current timestamp
-        
-    adjacency = [set(item) for item in who_infected]
-    nodes = [i for i in range(num_infected)]
-
-    # for node in nodes:
-        # print('Node ',node,': ',timestamps[node])
-    for est_time in est_times:
-        
-        reached_spies = [spy for spy in active_spies if timestamps[spy] <= est_time]
-        print('reached ',len(reached_spies), ' spies')
-        
-            
-        spies_timestamps = [timestamps[j] for j in active_spies if timestamps[j] <= est_time]
-        
-        # current_active_nodes = [item if ((abs(item) <= est_time) and (n not in active_spies)) else abs(item) for (item,n) in zip(active_nodes,nodes)]
-        if len(reached_spies) == 0:
-            current_active_nodes = [1 if n not in spies else -1 for n in nodes]
-        else:
-            current_active_nodes = active_nodes
-        print('est time',est_time)
-        # print('original active_nodes',active_nodes)
-        # print('new_active_nodes', current_active_nodes)
-        # spies_timestamps = [timestamps[j] for j in spies]
-        # print('spies:',spies)
-        # print('active spies:', active_spies)
-        # print('active spies timestamps', spies_timestamps)
-        # print('adjacnecy', [adjacency[i] for i in active_spies])
-        # print('active nodes: ', [item for item in range(len(active_nodes)) if active_nodes[item]==1])
-        
-        # spy_active_nodes = [1 if i not in spies else -1 for i in range(num_infected)]
-        # print('Considering ',len(reached_spies), ' spies: ',reached_spies)
-  
-  
-        # estimator = estimation_spies.EpflEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
-        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=spy_active_nodes)
-        # estimator = estimation_spies.EpflEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
-        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, spies, spies_timestamps, active_nodes=active_nodes)
-        # estimator = estimation_spies.EpflEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
-        # spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, active_spies, spies_timestamps, active_nodes=current_active_nodes)
-        estimator = estimation_spies.EpflEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
-        spy_estimator = estimation_spies.FirstSpyEstimator(adjacency, reached_spies, spies_timestamps, active_nodes=current_active_nodes)
-        lei_estimator = estimation_spies.LeiYingEstimator(adjacency, reached_spies, spies_timestamps, infectors=infectors, active_nodes=current_active_nodes)
-        
-        # for spy in reached_spies:
-            # print('spy',spy,' has time ',timestamps[spy],' and is ',nx.shortest_path_length(estimator.graph,0,spy),' hops away')
-        
-        if active_spies:
-            mean = 1.0 / p
-            start = time.time()
-            ml_estimate = estimator.estimate_source(mu_delay=mean)
-            # print('Surrounded? ',not any([current_active_nodes[n]>0 for n in estimator.graph if len(estimator.adjacency[n])==1]))
-            print('ml est', ml_estimate)
-            end = time.time()
-            print('ml elapsed:',end-start)
-            # print('spies:        ',reached_spies)
-            # print('all spies:    ',spies)
-            # print('active spies: ',active_spies)
-            # print('timestamps',spies_timestamps)
-            # estimator.draw_graph()
-            
-            spy_estimate = spy_estimator.estimate_source()
-            start = time.time()
-            print('spy elapsed:',start-end)
-            # lei_estimate = lei_estimator.estimate_source(mu_delay=mean)
-            lei_estimate = 0
-            end = time.time()
-            print('lei elapsed:',end - start)
-            
-            
-        else:
-            # choose a random node
-            ml_estimate = random.randint(0,num_infected - 1)
-            spy_estimate = ml_estimate
-            lei_estimate = ml_estimate
-        hop_distance = nx.shortest_path_length(estimator.graph, source, ml_estimate)
-        spy_hop_distance = nx.shortest_path_length(estimator.graph, source, spy_estimate)
-        lei_hop_distance = nx.shortest_path_length(estimator.graph, source, lei_estimate)
-
-        print('True source: ', source, ' EPFL estimate: ', ml_estimate)
-        print('True source: ', source, ' spy estimate: ', spy_estimate)
-        print('True source: ', source, ' Lei Ying estimate: ', lei_estimate)
-        
-        ml_correct.append(ml_estimate == source)
-        hop_distances.append(hop_distance)
-        spy_correct.append(spy_estimate == source)
-        spy_hop_distances.append(spy_hop_distance)
-        lei_correct.append(lei_estimate == source)
-        lei_hop_distances.append(lei_hop_distance)
-        tot_num_infected.append(num_infected)
-    # max_time = max(spies_timestamps)
-    # # print('spies_timestamps:', spies_timestamps)
-    # print('spy timestamps', spies_timestamps)
-    # for t_o in range(int(max_time)):
-        # t_o_timestamps = [spies_timestamps[i] for i in range(len(active_spies)) if spies_timestamps[i] < t_o]
-        # t_o_spies = [active_spies[i] for i in range(len(active_spies)) if spies_timestamps[i] < t_o]
-        # if t_o_spies:
-            # # print('spy timestamps', spies_timestamps)
-            # estimator = estimation_spies.EpflEstimator(adjacency, t_o_spies, t_o_timestamps, active_nodes)
-            # ml_estimate = estimator.estimate_source()
-        # else:
-            # ml_estimate = -1
-        # print('True source is ', source)
-        # ml_correct.append(ml_estimate == source)
-        # tot_num_infected.append(num_infected)
-        
-    print('Num spies are: ', len(spies), ' out of ', num_infected)
-    print('\n\n')
-    infection_details = (tot_num_infected, who_infected, hop_distances, spy_hop_distances, lei_hop_distances)
-    results = (ml_correct, spy_correct, lei_correct)
+    infection_details, results = estimate_source_spies(max_time, est_times, source, who_infected,
+                                                       num_infected, timestamps, spies,
+                                                       active_nodes, active_spies, infectors, q)
     return infection_details, results
+    
     
 # Semi-distributed adaptive diffusion over irregular trees (uses 1 timestep, this
 # is the version we used in our simulations)
@@ -309,6 +193,7 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
     
     who_infected = [[]]
     degrees = degrees_rv.rvs(size=1).tolist()
+    
     while timesteps < max_time:
     
             
@@ -321,16 +206,19 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)[:2]
             m = 1       # the virtual source is always going to be 1 hop away from the true source
             
+            # Account for any spies in the network
+            # if spy_probability > 0:
+                
+            
         else:
             current_neighbors = [k for k in who_infected[virtual_source]]
-
             # with probability alpha, spread symmetrically (keep the virtual source where it is)
+            # (when we have spies, we only spread asymmetrically)
             if random.random() < utilities.compute_alpha(m,timesteps,max_infection):
                 # branch once in every direction
                 for neighbor in current_neighbors:
                     degrees, who_infected = pass_branch_message_randtree(virtual_source, neighbor, degrees, degrees_rv, who_infected)[:2]
-            
-            # Otherwise, spread symmetrically
+            # Otherwise, spread asymmetrically
             else:
                 # find a direction to move
                 if alt: # Weight new virtual sources by their degree
@@ -350,18 +238,18 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                     virtual_source_candidate = virtual_source_candidate[0]
                     # print('regular: ', timesteps, degrees[virtual_source_candidate])
                 previous_vs = virtual_source
-                
+
                 # the virtual source moves one more hop away from the true source
                 m += 1;
-                
+
                 # branch twice in one direction
                 degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
                 degrees, who_infected = pass_branch_message_randtree(virtual_source, virtual_source_candidate, degrees, degrees_rv, who_infected)[:2]
-                
+
                 virtual_source = virtual_source_candidate
             
         num_infected = len(who_infected)
-
+        # The estimation for spies comes at the end, whereas we can do snapshot estimation on the fly
         # Estimating the error
         # ML estimate
         if alt: # Call the weighted estimator
@@ -371,11 +259,12 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             # print('who_infected: ', who_infected)
             # print('source: ', source, "ml_estimate: ", ml_estimate)
         ml_correct[timesteps] = (ml_estimate == source)
-        tot_num_infected[timesteps] = num_infected
         
+        tot_num_infected[timesteps] = num_infected
         timesteps += 1
         # print('num infected', num_infected)
     
+    # Deal with any additional snapshots
     original_m = m
     additional_hops = []
     additional_pd = []
@@ -388,6 +277,83 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         timesteps += 1
     
     infection_details = (tot_num_infected, infection_pattern, who_infected, additional_hops)
+    
+    return infection_details, ml_correct, additional_pd
+    
+# Up-down algorithms over irregular trees (this
+# is the version we used in our simulations for spies)
+def infect_nodes_up_down_irregular(source, max_time, degrees_rv, spy_probability = 0.0,
+                                        est_times = None):
+    '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
+    tree.
+    
+    Arguments:
+        source: The ID of the source node (usually 0)
+        max_time: The maximum amount of timesteps to run the algorithm
+        max_infection: Defines the (nominal degree-1) that is assumed in order to choose alpha
+        degrees_rv: A random variable that describes the graph degree
+        
+    Returns:
+        infection_details: A list of the characteristics of the infection:
+            - tot_num_infected: Total number of infected nodes at each timestep
+            - infection_pattern: Which nodes got infected in which order
+            - who_infected: Adjacency matrix of infected subgraph
+        ml_correct: The ML estimate of the true source'''
+    
+    
+    # initially the virtual source and the true source are the same
+    virtual_source = source
+
+    # ML estimate
+    ml_correct = [0 for i in range(max_time)]
+    tot_num_infected = [0 for i in range(max_time)]
+    num_infected = 0
+    
+    who_infected = [[]]
+    degrees = degrees_rv.rvs(size=1).tolist()
+    timestamps, active_nodes = [0],[0] # marks which nodes are candidate sources >=0 => valid, <0 => not valid
+    spies, active_spies, infectors = [],[],[]
+    spies_info = SpiesInformation([0],[],[source],[source],[None])
+    boundary = []
+    next_boundary = []
+    levels = [None]
+    # infect twice in one direction, always
+    degrees, who_infected, next_boundary, levels, new_neighbors = infect_nodes_up_down(source, 1, next_boundary, levels, degrees, degrees_rv, who_infected)
+    spies_info.add_nodes(source, new_neighbors, levels, spy_probability)
+    timesteps = 1
+    
+    while timesteps < max_time:
+    
+            
+        while boundary:
+            print(boundary)
+            node = boundary.pop(0)
+            print('node',node)
+            # branch
+            degrees, who_infected, next_boundary, levels, new_neighbors = infect_nodes_up_down(node, degrees[node]-1, 
+                                                            next_boundary, levels, degrees, degrees_rv, who_infected)
+            spies_info.add_nodes(node, new_neighbors, levels, spy_probability)
+            
+        # Swap the boundary arrays
+        boundary, next_boundary = next_boundary, boundary
+        num_infected = len(who_infected)
+        # The estimation for spies comes at the end, whereas we can do snapshot estimation on the fly
+        
+        tot_num_infected[timesteps] = num_infected
+        timesteps += 1
+        # print('num infected', num_infected)
+    
+    
+    infection_details = (tot_num_infected, who_infected, degrees)
+    # Estimate the source using spy information
+        
+    if est_times is None:
+        est_times = [max_time]
+    infection_details, results = estimate_source_spies(max_time, est_times, source, who_infected,
+                                                       num_infected, spies_info.timestamps, spies_info.spies,
+                                                       spies_info.active_nodes, spies_info.active_spies,
+                                                       spies_info.infectors)
+    
     return infection_details, ml_correct, additional_pd
 
 # Semi-distributed adaptive diffusion over predefined random tree    
@@ -658,18 +624,6 @@ def infect_nodes_adaptive_diff(source, adjacency, max_time, max_infection):
         timesteps += 1
     return num_infected, infection_pattern, who_infected, results
     
-def compute_permutation_likelihood(T,m):
-    return float(prob_G_given_m_and_T(T,m)) / pow(d,m)
-    
-def prob_G_given_m_and_T(T,m):
-    if m < 1:
-        print('MAJOR ERROR, m cannot be less than 1')
-        return -1
-    prob = float(1-utilities.compute_alpha(1,T,d))/pow(d,m)
-    for i in range(2,m+1):
-        prob = prob * utilities.compute_alpha(i,T,d)
-    return prob
-
     
 # Pramod's deterministic tree-shaped spreading algorithm.
 def infect_nodes_deterministic(source, adjacency, greedy = False):
@@ -841,150 +795,4 @@ def infect_nodes_deterministic_reinfect(source, adjacency):
     print("Infected ", infected_nodes, " / ", num_nodes, " total nodes.")
     return num_infected, infection_pattern
     
-def pick_random_elements(neighbors,num_neighbors):
-    # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list
-    # Inputs
-    #       neighbors:          the list of neighbors
-    #       num_neighbors:      the number of elements to pick from the list
-    #
-    # Outputs
-    #       random_elements     the neighbors chosen
-    #       neighbors           the updated neighbors, without random_elements
-    
-    random_elements = []
-    for i in range(num_neighbors):
-        random_element = random.choice(neighbors)
-        neighbors.remove(random_element)
-        random_elements.append(random_element)
-    if neighbors:
-        likelihood = float(num_neighbors) / len(neighbors)
-    else:
-        likelihood = 1
-    random_elements.sort()
-    return random_elements, neighbors, likelihood
 
-def pick_random_elements_greedy(neighbors,num_neighbors,adjacency,infection_pattern,node):
-    # remove 'num_neighbors' random elements from the set neighbors, and return them along with the shortened list.
-    # This time, pick a neighbor weighted by the number of uninfected neighbors.
-    # Inputs
-    #       neighbors:          the list of neighbors
-    #       num_neighbors:      the number of elements to pick from the list
-    #
-    # Outputs
-    #       random_elements     the neighbors chosen
-    #       neighbors           the updated neighbors, without random_elements
-    
-    random_elements = []
-    # Find which neighbor has the fewest infected friends, and give it the up chain
-    surroundedness = []
-    for neighbor in neighbors:
-        infected_neighbors = sum([1 for k in adjacency[neighbor] if ((k!=node) and (infection_pattern[k]==0))])# / len(adjacency[neighbor])
-        # surroundedness = surroundedness + [infected_neighbors]
-        mutual_friends = sum([1 for k in adjacency[neighbor] if ((k!=node) and (k in neighbors))]) #/ len(adjacency[neighbor])
-        surroundedness = surroundedness + [mutual_friends * max(infected_neighbors,1)]
-    # sorted_neighbors = [x for (y,x) in sorted(zip(surroundedness,neighbors))]
-    
-    print("Sorted neighbors", sorted(zip(surroundedness,neighbors)))
-    sorted_neighbors = [x for (y,x) in sorted(zip(surroundedness,neighbors))]
-    if sum(surroundedness) == 0:
-        total = 1
-    else:
-        total = sum(surroundedness)
-    surroundedness = [1 - i/float(total) for i in surroundedness]
-    virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(neighbors, surroundedness))
-        
-    for i in range(num_neighbors):
-        element = virtual_source_rv.rvs(size=1)
-        neighbors.remove(element)
-        # element = sorted_neighbors.pop()
-        random_elements.append(element)
-    if neighbors:
-        likelihood = float(num_neighbors) / len(neighbors)
-    else:
-        likelihood = 1
-    random_elements.sort()
-    # return random_elements, sorted_neighbors, likelihood
-    return random_elements, neighbors, likelihood
-    
-def pass_branch_message_infinite_tree(source, recipient, adjacency, max_degree):
-    # pass an instruction to branch from the source to the leaves overn an infinite tree
-    # Inputs
-    #       source:             source of the infection
-    #       recipient:          array of child ids
-    #       adjacency:          adjacency relations for the infected subgraph
-    #       max_degree:         degree of each node in the regular tree     
-    #
-    # Outputs
-    #       adjacency          (updated)
-
-    leaf = True
-    neighbors = adjacency[recipient]
-    for neighbor in neighbors:
-        if not neighbor == source:
-            leaf = False
-            adjacency =  pass_branch_message_infinite_tree(recipient, neighbor, adjacency, max_degree)
-            
-    if leaf:
-        adjacency = utilities.infect_nodes_infinite_tree(recipient, max_degree-1, adjacency)
-    return adjacency
-
-def pass_branch_message_randtree(source, recipient, degrees, degrees_rv, who_infected, known_degrees = []):
-    # pass an instruction to branch from the source to the leaves
-    # Inputs
-    #       source:             source of the infection
-    #       recipient:          array of child ids
-    #       degrees:            the degree of each node in the underlying irregular tree
-    #       degrees_rv:          a random variable describing the degree distribution
-    #       who_infected:       adjacency relations for the infected subgraph
-    #
-    # Outputs
-    #       degrees             (updated)
-    #       who_infected        (updated)
-    
-    leaf = True
-    
-    # pass to the neighbors who are your neighbors in the true infection graph
-    neighbors = [k for k in who_infected[recipient] if (not k == source)]
-    neighbors.sort() # this should be commented for a randomized distribution!
-    
-    for neighbor in neighbors:
-        leaf = False
-        degrees, who_infected, known_degrees =  pass_branch_message_randtree(recipient, neighbor, degrees, degrees_rv, who_infected, known_degrees)
-            
-    if leaf:
-        to_infect = degrees[recipient] - 1
-        neighbors = ([k+len(degrees) for k in range(to_infect)])
-        degrees,who_infected, known_degrees = utilities.infect_nodes_randtree(recipient, neighbors, degrees, degrees_rv, who_infected, known_degrees)
-    return degrees, who_infected, known_degrees
-    
-def pass_branch_message(source, recipient, infection_pattern, adjacency, max_infection, who_infected, dist_from_source):
-    # pass an instruction to branch from the source to the leaves
-    # Inputs
-    #       source:             source of the infection
-    #       recipient:          array of child ids
-    #       infection_pattern:  binary array describing whether each node is already infected or not
-    #       adjacency:          adjacency relations for the underlying network
-    #       max_infection:      maximum number of people who can be infected by a single node     
-    #       who_infected:       adjacency relations for the infected subgraph
-    #
-    # Outputs
-    #       infection_pattern   (updated)
-    #       who_infected        (updated)
-    
-    leaf = True
-    
-    # pass to the neighbors who are your neighbors in the true infection graph
-    neighbors = [k for k in who_infected[recipient] if (not k == source)]
-    neighbors.sort() # this should be commented for a randomized distribution!
-    
-    for neighbor in neighbors:
-        leaf = False
-        infection_pattern, who_infected, dist_from_source =  pass_branch_message(recipient, neighbor, infection_pattern, adjacency, max_infection, who_infected, dist_from_source)
-            
-    if leaf:
-        neighbors = [k for k in adjacency[recipient] if infection_pattern[k]==0]
-        if len(neighbors) > max_infection:
-            neighbors, remains, leaf_likelihood = pick_random_elements(neighbors,max_infection)
-        infection_pattern,who_infected, dist_from_source = utilities.infect_nodes(recipient, neighbors, infection_pattern, who_infected, dist_from_source)
-    return infection_pattern, who_infected, dist_from_source
-    

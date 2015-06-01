@@ -17,25 +17,29 @@ def parse_args(args):
     parser.add_argument("--db", nargs = '?', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'none')
     parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
     args = parser.parse_args()
-    
+
+    # Num trials
     if args.trials:
         trials = int(args.trials)
     else:
         trials = 1
+    # Write results
     if args.write_results:
         write_results = bool(args.write_results)
     else:
         write_results = False # Do not write results to file
+    # Run number
+    if args.run:
+            run = args.run
+    else:
+        run = 0
+    # Spy probability
+    if args.spy_probability:
+        spy_probability = float(args.spy_probability)
+    else: 
+        spy_probability = 0.0
     if args.diffusion:
         diffusion = bool(args.diffusion)
-        if args.spy_probability:
-            spy_probability = float(args.spy_probability)
-        else: 
-            spy_probability = 0.0
-        if args.run:
-            run = args.run
-        else:
-            run = 0
         if args.delay_parameter:
             delay_parameter = float(args.delay_parameter)
         else:
@@ -48,14 +52,11 @@ def parse_args(args):
     if not (args.db == 'none'):
         database = args.db
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
-        if args.run:
-            run = args.run
-        else:
-            run = 0
+        
         return {'trials':trials, 'write_results':write_results, 'database':database, 'run':run} 
         
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
-    return {'trials':trials, 'write_results':write_results, 'alt':alt}
+    return {'trials':trials, 'write_results':write_results, 'alt':alt,'spy_probability':spy_probability,'run':run}
 
 def nCk(n, k):
     '''

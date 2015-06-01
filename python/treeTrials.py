@@ -15,7 +15,8 @@ if __name__ == "__main__":
     run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
     spy_probability = args.get('spy_probability')
-    delay_parameter = args.get('delay_parameter')
+    if diffusion:
+        delay_parameter = args.get('delay_parameter')
     
     # ----Irregular tree graph-----
     # xks = [np.arange(3,5), np.arange(3,6), np.arange(3,20,14)]
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     
     # est_times: the timestamps at which to estimate the source
     # est_times = [6,8,10,12,14,16] # d=3
-    est_times = [12] # d=3
+    est_times = [16] # d=3
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
@@ -94,8 +95,9 @@ if __name__ == "__main__":
                                                                       additional_time = additional_time)[:2]
                     print("additional pd: ", additional_pd)
                 else:
-                    print(max_infection, degrees_rv)
-                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0)[:2]
+                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0,
+                                                                        spy_probability=spy_probability,
+                                                                        est_times = est_times)[:2]
                 pd_ml, additional_pd = results
             print("pd ML: ", pd_ml)
             print('num_infected: ', num_infected)

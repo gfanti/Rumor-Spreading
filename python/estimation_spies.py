@@ -7,9 +7,10 @@ import heapq
 import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
+from spies import *
 
 class Estimator(object):
-    def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None):
+    def __init__(self, adjacency, malicious_nodes, timestamps=None, infectors = None, active_nodes = None):
         self.adjacency = adjacency
         self.malicious_nodes = malicious_nodes
         self.timestamps = timestamps
@@ -417,5 +418,160 @@ class FirstSpyEstimator(Estimator):
             if options:
                 estimate = random.choice(options)
                 return estimate
-        print('no spies!')
         return estimate
+        
+class AdaptiveEstimator(Estimator):
+    def __init__(self, adjacency, malicious_nodes, active_nodes = None, degrees_rv = None):
+        super(AdaptiveEstimator, self).__init__(adjacency, malicious_nodes, active_nodes)
+        self.degrees_rv = degrees_rv
+        
+    def estimate_source(self):
+        '''Estimates the source based on the observed information.
+        Arguments:
+            use_directions          tells whether to use information about who sent the the message
+            mu                      the mean spreading delay
+            
+        Outputs:
+            estimate                the index of the node that is estimated'''
+            
+        # Sums the distance to the unvisited nodes and visited nodes at time_t
+        max_likelihood = None
+        max_indices = []
+        # print('Spies: ',[(spy.node,spy.level,spy.up_node) for spy in self.malicious_nodes])
+        # print('adjacency: ',self.adjacency)
+        spies = self.malicious_nodes
+        
+        up_spies = [spy for spy in spies if spy.up_node] # level is greater than zero
+        if not up_spies:
+            print('NO UPS')
+            cnt = 0
+            paths = []
+            while not paths:
+                # There is no pivot, so just take the farthest-apart spies in time
+                result = self.compute_min_pivot_down(spies[cnt],spies[-1])
+                hops, pivot, bad_neighbors = result
+                min_pivot = pivot.node
+                paths = self.compute_candidate_paths(hops, min_pivot, bad_neighbors)
+                cnt += 1
+        else:
+            up_level = min([spy.level for spy in up_spies])
+            up_spy = None
+            for spy in up_spies:
+                if spy.level == up_level:
+                    up_spy = spy
+                    break
+            #  find the pivot
+            # print('Spies are', [spy.node for spy in self.malicious_nodes])
+            # print('Up Spy is', up_spy.node)
+            # print('Num nodes: ', len(self.graph.nodes()))
+            # print('Num spies: ', len(self.malicious_nodes))
+            result = self.compute_min_pivot(up_spy)
+            hops, min_pivot, bad_neighbors = result
+            paths = self.compute_candidate_paths(hops, min_pivot, bad_neighbors)
+        # print ('min pivot',min_pivot)
+        # print ('were looking ',hops,' hops away')
+        
+        # estimate = random.choice(paths)
+        # try:
+        pd = 1.0 / len(paths)
+        # except:
+            # if not up_spies:
+                # exit(0)
+                # pd = 1.0 / (self.degrees_rv.mean() - 1)**(pivot.level-1)
+        # print('Positive levels',[level for level in self.levels if level > 0])
+        
+        return pd
+        
+    def compute_min_pivot(self, up_spy):
+        ''' Given the up-spy and the '''
+        spies = self.malicious_nodes
+        
+        
+        pivots = [-1 for i in range(up_spy.level)]
+        bad_neighbors = [set() for i in range(up_spy.level)]
+        for spy in [ item for item in spies if item.node != up_spy.node]:
+            # print('graph nodes:', self.graph.nodes())
+            # print('path from x to y:', spy.node, up_spy.node)
+            path = nx.shortest_path(self.graph, spy.node, up_spy.node)
+            # print('path:', path)
+            if up_spy.infector in path:
+                # print('nodes',spy.node,'end',up_spy.node,'path', path)
+                pivot = self.compute_pivot(up_spy, spy, path)
+                # print('found pivot',pivot)
+                # print('level',pivot.level, pivots)
+                if pivot.level < up_spy.level:
+                    pivots[pivot.level] = pivot.node
+                    # pivot_path = path[:pivot.level - spy.level + 1]
+                    # print('path:',path)
+                    # print('pivot:',pivot.node)
+                    # print('levels:',pivot.level - spy.level - 1,pivot.level - spy.level+1)
+                    # print('pivot: ', pivot, 'pivot path', pivot_path)
+                    bad_neighbors[pivot.level].add(path[pivot.level - spy.level - 1])
+                    bad_neighbors[pivot.level].add(path[pivot.level - spy.level + 1])
+                
+        # print('all pivots',pivots)
+        hops = 0
+        for pivot,neighbor_list in zip(pivots, bad_neighbors):
+            if pivot >= 0:
+                return (hops, pivot, neighbor_list) 
+            hops += 1
+        return None
+        
+    def compute_min_pivot_down(self, down_spy1, down_spy2):
+        ''' Given the farthest down_spies, guess the pivot '''
+        spies = self.malicious_nodes
+        
+        
+        bad_neighbors = set()
+        path = nx.shortest_path(self.graph, down_spy1.node, down_spy2.node)
+        pivot = self.compute_pivot(down_spy2, down_spy1, path, True) #happens to be the same for (up-down) and (down-down)
+        for spy in [ item for item in spies if item.node != pivot.node]:
+            pivot_path = nx.shortest_path(self.graph, spy.node, pivot.node)
+            # print('path:',pivot_path)
+            # print('pivot:',pivot.node)
+            # print('to omit:',pivot_path[-2])
+            bad_neighbors.add(pivot_path[-2])
+                
+        hops = pivot.level
+        return (hops, pivot, bad_neighbors) 
+            
+        
+    def compute_candidate_paths(self, hops, min_pivot, bad_neighbors):
+    
+        # Get the feasible candidate paths
+        # print('hops',hops,'min_pivot',min_pivot)
+        all_paths = nx.single_source_shortest_path_length(self.graph, min_pivot, cutoff=hops)
+        # print('all paths before',all_paths)
+        all_paths = [(k,v) for k,v in all_paths.items() if v == hops]
+        
+        # print('all paths',all_paths)
+        # print('bad neighbors',bad_neighbors)
+        
+        # Prune out those passing through bad neighbors
+        feasible_paths = []
+        for candidate in all_paths:
+            path = nx.shortest_path(self.graph, candidate[0], min_pivot)
+            # print('path: ',path)
+            if path[-2] not in bad_neighbors:
+                feasible_paths += [path]
+        
+        return feasible_paths
+        
+    def compute_pivot(self, up_spy, spy, path, both_down = False):
+        Pl = len(path) - 1  # path length between spies
+        dt = up_spy.timestamp - spy.timestamp
+        h1 = int(0.5 * (Pl - dt))
+        if both_down:
+            dm = up_spy.level - spy.level
+            h2 = int(0.5 * (dt + dm))
+            h3 = int(0.5 * (Pl - dm))
+            print(h1,h2,h3)
+            if h2 < 1:
+                pivot = Spy(path[h1 + abs(h2)],level=up_spy.level + h3,up_node=True)
+                return pivot
+        
+        if spy.level < 0:
+            print('MEGA PROBLEM IN COMPUTE_PIVOT')
+        pivot = Spy(path[h1],level=spy.level + h1,up_node=True)
+        
+        return pivot

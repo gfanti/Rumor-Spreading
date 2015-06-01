@@ -2,7 +2,9 @@
 import utilities
 import buildGraph
 import infectionModels
+import spyInfectionModels
 import exportGraph
+import adversaries
 import random
 
 '''Runs a spreading algorithm over a real dataset. Either pramod's algo (deterministic) or message passing (ours)'''    
@@ -118,13 +120,34 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             print('\nTrial ',trial, ' / ',trials-1)
         source = 0
         if method == 0:      # Infect nodes with adaptive diffusion over an irregular tree (possibly with multiple snapshots)
-            infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
-                                                                                                 degrees_rv, additional_time = additional_time)
-            num_infected, infection_pattern, who_infected, additional_hops = infection_details
+            if spy_probability > 0.0:
+                # WIth spies
+                
+                # Infect nodes
+                up_down_infector = spyInfectionModels.UpDownInfector(spy_probability,degrees_rv)
+                infection_details, spies_info = up_down_infector.infect(source, max_time)
+                who_infected, degrees, num_infected = infection_details
+                
+                # Estimate the source
+                adversary = adversaries.UpDownAdversary(source, spies_info, who_infected, degrees)
+                results = adversary.get_estimates(max_time, est_times)
+                ml_correct, hop_distances = results
+                additional_pd = [0 for i in range(additional_time)]
+                # infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_up_down_irregular(source, max_time, degrees_rv, 
+                                                                                                 # spy_probability=spy_probability,
+                                                                                                 # est_times = est_times)
+                
+                # num_infected, who_infected, degrees = infection_details
+            else:
+                # No spies
+                infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
+                                                                                                 degrees_rv, additional_time = additional_time, alt=False)
+                num_infected, infection_pattern, who_infected, additional_hops = infection_details
             # print(additional_hops)
             additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
         elif method == 1:    # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
-            infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, degrees_rv, True)
+            infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, 
+                                                                                                 degrees_rv, True, spy_probability=spy_probability)
             num_infected, infection_pattern, who_infected = infection_details
         elif method == 2:    # Infect nodes with adaptive diffusion over a pre-determined irregular tree
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
