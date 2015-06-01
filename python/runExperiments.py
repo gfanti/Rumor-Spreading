@@ -126,10 +126,10 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                 # Infect nodes
                 up_down_infector = spyInfectionModels.UpDownInfector(spy_probability,degrees_rv)
                 infection_details, spies_info = up_down_infector.infect(source, max_time)
-                who_infected, degrees, num_infected = infection_details
+                who_infected, num_infected = infection_details
                 
                 # Estimate the source
-                adversary = adversaries.UpDownAdversary(source, spies_info, who_infected, degrees)
+                adversary = adversaries.UpDownAdversary(source, spies_info, who_infected, degrees_rv)
                 results = adversary.get_estimates(max_time, est_times)
                 ml_correct, hop_distances = results
                 additional_pd = [0 for i in range(additional_time)]

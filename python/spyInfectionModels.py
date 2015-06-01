@@ -52,7 +52,7 @@ class UpDownInfector(Infector):
         self.who_infected = [[]]
         self.num_infected = 1
         self.spies_info = SpiesInformation([0],[],[source],[],[])
-        self.degrees = self.degrees_rv.rvs(size=1).tolist()
+        self.degrees = self.degrees_rv.draw_values(1)
         self.levels = [None]
         # infect twice in one direction, always
         new_neighbors = self.infect_nodes_up_down(source, 1)
@@ -80,7 +80,7 @@ class UpDownInfector(Infector):
             # print('num infected', num_infected)
         
         
-        infection_details = (self.who_infected, self.degrees, tot_num_infected)
+        infection_details = (self.who_infected, tot_num_infected)
             
         
         return infection_details, self.spies_info
@@ -109,7 +109,8 @@ class UpDownInfector(Infector):
         self.num_infected = len(self.who_infected)
         
         #update the degrees
-        self.degrees += self.degrees_rv.rvs(size=len(children)).tolist()
+        # self.degrees += self.degrees_rv.rvs(size=len(children)).tolist()
+        self.degrees += self.degrees_rv.draw_values(len(children))
         
         #update the metadata
         if self.levels[node] is None:

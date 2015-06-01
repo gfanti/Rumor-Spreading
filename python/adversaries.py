@@ -11,14 +11,14 @@ class Adversary(object):
         
 class UpDownAdversary(Adversary):
     
-    def __init__(self, source, spies_info, who_infected, degrees):
+    def __init__(self, source, spies_info, who_infected, degrees_rv):
         super(UpDownAdversary, self).__init__()
         
         self.source = source
         self.spies_info = spies_info
         self.who_infected = who_infected
         self.num_infected = len(who_infected)
-        self.degrees = degrees
+        self.degrees_rv = degrees_rv
         
     def get_estimates(self, max_time, est_times=None):
         '''Estimate the source  '''
@@ -61,7 +61,9 @@ class UpDownAdversary(Adversary):
             
             
             estimator = estimation_spies.AdaptiveEstimator(self.who_infected, reached_spies,
-                                                           active_nodes=current_active_nodes)
+                                                           active_nodes=current_active_nodes,
+                                                           degrees_rv=self.degrees_rv,
+                                                           source=self.source)
             
 
             if len(reached_spies) > 1:
@@ -74,14 +76,14 @@ class UpDownAdversary(Adversary):
                 # estimator.draw_graph()
                 
             else:
-                print('\n Not enough spies!!!!\n')
+                # print('\n Not enough spies!!!!\n')
                 print('reached spies',[item.node for item in reached_spies])
                 # choose a random node
                 # ml_estimate = random.randint(0,self.num_infected - 1)
                 if len(reached_spies) == 0:
                     pd_ml = 1.0 / self.num_infected
                 elif len(reached_spies) == 1 and reached_spies[0].up_node:
-                    pd_ml = 1.0 / (np.mean(self.degrees))**(reached_spies[0].level-1)
+                    pd_ml = 1.0 / ((self.degrees_rv.mean() - 1)**(reached_spies[0].level-1))
                 else:
                     pd_ml = 1.0 / (self.num_infected - 1)
                 

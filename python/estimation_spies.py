@@ -421,9 +421,10 @@ class FirstSpyEstimator(Estimator):
         return estimate
         
 class AdaptiveEstimator(Estimator):
-    def __init__(self, adjacency, malicious_nodes, active_nodes = None, degrees_rv = None):
+    def __init__(self, adjacency, malicious_nodes, active_nodes = None, degrees_rv = None, source=None):
         super(AdaptiveEstimator, self).__init__(adjacency, malicious_nodes, active_nodes)
         self.degrees_rv = degrees_rv
+        self.source = source
         
     def estimate_source(self):
         '''Estimates the source based on the observed information.
@@ -472,12 +473,19 @@ class AdaptiveEstimator(Estimator):
         # print ('were looking ',hops,' hops away')
         
         # estimate = random.choice(paths)
-        # try:
-        pd = 1.0 / len(paths)
-        # except:
-            # if not up_spies:
-                # exit(0)
-                # pd = 1.0 / (self.degrees_rv.mean() - 1)**(pivot.level-1)
+        
+        # FOr regular trees, the true source is always among the ML estimates
+        if len(self.degrees_rv.xk) == 1:
+            pd = 1.0 / len(paths)
+        # For irregular trees, sometimes not
+        else:
+            candidates = self.get_max_likelihoods(paths)
+            if self.source in candidates:
+                pd = 1.0 / len(paths)
+            else:
+                pd = 0.0
+        
+
         # print('Positive levels',[level for level in self.levels if level > 0])
         
         return pd
@@ -575,3 +583,23 @@ class AdaptiveEstimator(Estimator):
         pivot = Spy(path[h1],level=spy.level + h1,up_node=True)
         
         return pivot
+        
+    def get_max_likelihoods(self, paths):
+        likelihoods = []
+        for path in paths:
+            # print('path:', path)
+            degrees = list(self.graph.degree(path[1:]).values())
+            degrees = self.degrees_rv.draw_values(1) + degrees
+            # print('degrees:', degrees)
+            degrees = [1.0/(degrees[i]-1) if i != 0 else 1.0/(degrees[i]) for i in range(len(degrees)) ]
+            # print('modified degrees:', degrees)
+            likelihoods.append(np.prod(degrees))
+        # print('likelihoods',likelihoods)
+        max_likelihoods = []
+        for path,likelihood in zip(paths, likelihoods):
+            if likelihood == max(likelihoods):
+                max_likelihoods.append(path[0])
+            
+        return max_likelihoods
+            
+        
