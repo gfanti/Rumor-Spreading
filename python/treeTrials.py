@@ -98,18 +98,24 @@ if __name__ == "__main__":
                     num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv, 0,
                                                                         spy_probability=spy_probability,
                                                                         est_times = est_times)[:2]
-                pd_ml, additional_pd = results
+                pd_ml, additional_pd, hop_distances = results
             print("pd ML: ", pd_ml)
             print('num_infected: ', num_infected)
 
             if write_results:
+                filename = 'results/spies/regular_trees/results_'
                 xk_str = [str(i) for i in xk]
                 if isinstance(pk, (int, float, complex)):
                     pk_str = str(round(pk,1))
+                    filename += xk_str[0] + "_" + pk_str
                 else:
                     pk_str = [str(round(i,1)) for i in pk]
+                    filename += "_".join(xk_str) + "_" + "_".join(pk_str)
+                if spy_probability > 0.0:
+                    filename += 'spies' + str(spy_probability)
                 if alt:
-                    filename = 'results/irregular_tree_alt_results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + '.mat'
-                else:
-                    filename = 'results/irregular_tree_results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + '.mat'
-                io.savemat(filename,{'pd_ml':np.array(pd_ml), 'num_infected':np.array(num_infected)})
+                    filename += '_alt'
+                filename += '_run_' + str(run) + '.mat'
+                
+                io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
+                                     'num_infected':np.array(num_infected)})

@@ -181,7 +181,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     
     if method == 0:
         additional_pd_mean = [i/trials for i in additional_pd_mean]
-        results = (pd_ml, additional_pd_mean)
+        results = (pd_ml, additional_pd_mean, hop_distances)
     elif method == 1:
         results = (pd_ml)
     elif method == 2:
