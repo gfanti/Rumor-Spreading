@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [1,2,3,4,5]
+    est_times = [6]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
@@ -77,19 +77,19 @@ if __name__ == "__main__":
                 pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
                 print('hop distances',hop_distances)
                 if write_results:
+                    prob = str(Decimal(spy_probability).quantize(Decimal('.01')))
                     if isinstance(pk, float):
                         xk_str = str(xk[0])
                         pk_str = str(pk)
-                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+str(spy_probability) + '_q_' + str(delay_parameter) + '_run_' + str(run) + '.mat'
+                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+prob + '_q_' + str(delay_parameter) + '_run_' + str(run) + '.mat'
                     else:
                         xk_str = [str(i) for i in xk]
                         pk_str = [str(round(i,1)) for i in pk]
-                        prob = str(Decimal(spy_probability).quantize(Decimal('.01')))
                         filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+ prob + '_run_' + str(run) + '.mat'
                     io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
                                          'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
                                          'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
-                                         'num_infected':np.array(num_infected)})
+                                         'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
                     continue
             # Check for weighted spreading
             elif alt:
@@ -125,4 +125,4 @@ if __name__ == "__main__":
                 filename += '_run_' + str(run) + '.mat'
                 
                 io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
-                                     'num_infected':np.array(num_infected)})
+                                     'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
