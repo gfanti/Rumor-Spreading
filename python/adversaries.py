@@ -5,19 +5,92 @@ import random
 import numpy as np
 
 class Adversary(object):
-    def __init__(self):
-        pass
-        
-        
-class UpDownAdversary(Adversary):
-    
-    def __init__(self, source, spies_info, who_infected, degrees_rv):
-        super(UpDownAdversary, self).__init__()
-        
+    def __init__(self, source, who_infected):
         self.source = source
-        self.spies_info = spies_info
         self.who_infected = who_infected
         self.num_infected = len(who_infected)
+
+        
+
+class SpyAdversary(Adversary):
+    def __init__(self, source, who_infected, spies_info):
+        super(SpyAdversary, self).__init__(source, who_infected)
+        self.spies_info = spies_info
+        
+class DiffusionSpiesAdversary(SpyAdversary):
+    
+    def __init__(self, source, spies_info, who_infected):
+        super(DiffusionSpiesAdversary, self).__init__(source, who_infected, spies_info)
+    
+    def get_estimates(self, max_time, est_times=None):
+        '''Estimate the source  '''
+        if est_times is None:
+            est_times = [max_time]
+            
+        ml_correct, spy_correct, hop_distances = [],[],[]
+        
+        spies_info = self.spies_info
+        nodes = range(self.num_infected)
+
+        for est_time in est_times:
+            
+            spies_timestamps = [spy.timestamp for spy in spies_info.active_spies if spy.timestamp <= est_time]
+            reached_spies = [spy for spy in spies_info.active_spies if spy.timestamp <= est_time]
+            
+            if len(reached_spies) == 0:
+                current_active_nodes = [1 if n not in spies_info.spies else -1 for n in nodes]
+            else:
+                current_active_nodes = spies_info.active_nodes
+            print('est time',est_time)
+
+            malicious_nodes, timestamps, infectors = [],[],[]
+            for spy in reached_spies:
+                malicious_nodes.append(spy.node)
+                timestamps.append(spy.timestamp)
+                infectors.append(spy.infector)
+            
+            epfl_estimator = estimation_spies.EpflEstimator(self.who_infected, malicious_nodes,
+                                                            timestamps, infectors, spies_info.active_nodes)
+
+            spy_estimator = estimation_spies.FirstSpyEstimator(self.who_infected, malicious_nodes,
+                                                               timestamps, infectors, spies_info.active_nodes)
+                                                            
+            if len(reached_spies) > 1:
+                # start = time.time()
+                
+                # pd_ml = epfl_estimator.estimate_source(pd=True)
+                pd_ml = 0.0
+                spy_est = spy_estimator.estimate_source()
+                print('ml est', pd_ml, 'true source', self.source)
+                pd_spy = spy_est == self.source
+                print('\nspy est', spy_est, 'true source', self.source)
+                # end = time.time()
+                # print('ml elapsed:',end-start)
+                # estimator.draw_graph()
+                
+            else:
+                print('reached spies',[item.node for item in reached_spies])
+                # choose a random node
+                pd_ml = 1.0 / self.num_infected
+                pd_spy = pd_ml
+                
+            hop_distance = 0
+            print(' ML adaptive estimate pd: ', pd_ml)
+
+            # ml_correct.append(ml_estimate == self.source)
+            ml_correct.append(pd_ml)
+            spy_correct.append(pd_spy)
+            hop_distances.append(hop_distance)
+            
+            
+        results = (ml_correct, spy_correct, hop_distances)
+        return results
+        
+class UpDownAdversary(SpyAdversary):
+    
+    def __init__(self, source, spies_info, who_infected, degrees_rv):
+        super(UpDownAdversary, self).__init__(source, who_infected, spies_info)
+        
         self.degrees_rv = degrees_rv
         
     def get_estimates(self, max_time, est_times=None):
@@ -98,3 +171,75 @@ class UpDownAdversary(Adversary):
         results = (ml_correct, hop_distances)
         return results
             
+class DatasetUpDownAdversary(SpyAdversary):
+    
+    def __init__(self, source, spies_info, who_infected, adjacency, max_infection = 3):
+        super(DatasetUpDownAdversary, self).__init__(source, who_infected, spies_info)
+        
+        self.adjacency = adjacency
+        self.max_infection = max_infection
+        
+    def get_estimates(self, max_time, est_times=None):
+        '''Estimate the source  '''
+        if est_times is None:
+            est_times = [max_time]
+            
+        ml_correct, hop_distances = [],[]
+        
+        nodes = range(self.num_infected)
+        spies_info = self.spies_info
+
+        for est_time in est_times:
+            
+            spies_timestamps = [spy.timestamp for spy in spies_info.active_spies if spy.timestamp <= est_time]
+            
+            reached_spies = [spy for spy in spies_info.active_spies if spy.timestamp <= est_time]
+            if len(reached_spies) == 0:
+                current_active_nodes = [1 if n not in spies_info.spies else -1 for n in nodes]
+            else:
+                current_active_nodes = spies_info.active_nodes
+            print('est time',est_time)
+            
+            
+            estimator = estimation_spies.DatasetAdaptiveEstimator(self.adjacency, self.who_infected, reached_spies,
+                                                           active_nodes=current_active_nodes,
+                                                           source=self.source,
+                                                           max_infection=self.max_infection)
+
+            if len(reached_spies) > 1:
+                # start = time.time()
+                
+                pd_ml = estimator.estimate_source()
+                print('ml est', pd_ml)
+                # end = time.time()
+                # print('ml elapsed:',end-start)
+                # estimator.draw_graph()
+                
+            else:
+                print('reached spies',[item.node for item in reached_spies])
+                # choose a random node
+                if len(reached_spies) == 0:
+                    pd_ml = 1.0 / self.num_infected
+                elif len(reached_spies) == 1: # and reached_spies[0].up_node:
+                    spy = reached_spies[0]
+                    if spy.level == 1:
+                        pd_ml = 1.0
+                    else:
+                        all_paths = nx.single_source_shortest_path(estimator.graph,spy.infector,spy.level-1).items()
+                        candidates = 0
+                        for path in all_paths:
+                            if spy.node not in path:
+                                candidates += 1
+                        pd_ml = 1.0 / candidates
+                else:
+                    pd_ml = 1.0 / (self.num_infected - 1)
+                
+            hop_distance = 0
+            print(' ML adaptive estimate pd: ', pd_ml)
+
+            # ml_correct.append(ml_estimate == self.source)
+            ml_correct.append(pd_ml)
+            hop_distances.append(hop_distance)
+            
+        results = (ml_correct, hop_distances)
+        return results

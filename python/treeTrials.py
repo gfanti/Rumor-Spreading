@@ -16,8 +16,9 @@ if __name__ == "__main__":
     alt = args.get('alt', False)
     run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
+    spies = args.get('spies', False)
     spy_probability = args.get('spy_probability')
-    use_adaptive = not diffusion
+    
     if diffusion:
         delay_parameter = args.get('delay_parameter')
     
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([5]) for i in range(1)]
+    xks = [np.array([3]) for i in range(1)]
     # pks = [(0.5, 0.5) for i in range(4)]
     pks = [(1.0) for i in range(1)] 
     
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [6]
+    est_times = [12]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
@@ -71,7 +72,7 @@ if __name__ == "__main__":
         else:
             if diffusion:
                 num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
-                                                                    degrees_rv2, method=4, p=delay_parameter, 
+                                                                    degrees_rv2, method=4, q=delay_parameter, 
                                                                     spy_probability = spy_probability,
                                                                     est_times = est_times)[:2]
                 pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
@@ -103,7 +104,8 @@ if __name__ == "__main__":
                 else:
                     num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
                                                                         spy_probability=spy_probability,
-                                                                        use_adaptive=use_adaptive,
+                                                                        diffusion=diffusion,
+                                                                        spies=spies,
                                                                         est_times = est_times)[:2]
                 pd_ml, additional_pd, hop_distances = results
             print("pd ML: ", pd_ml)

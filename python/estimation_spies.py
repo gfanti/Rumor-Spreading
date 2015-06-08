@@ -8,13 +8,16 @@ import networkx as nx
 import matplotlib
 import matplotlib.pyplot as plt
 from spies import *
+import infectionUtils
+import estimation
 
 class Estimator(object):
-    def __init__(self, adjacency, malicious_nodes, timestamps=None, infectors = None, active_nodes = None):
+    def __init__(self, adjacency, malicious_nodes, timestamps=None, infectors = None, active_nodes = None, source = None):
         self.adjacency = adjacency
         self.malicious_nodes = malicious_nodes
         self.timestamps = timestamps
         self.infectors = infectors
+        self.source = source
         self.graph = nx.Graph()
         
         # Populate the active nodes
@@ -88,14 +91,15 @@ class Estimator(object):
         
                 
 class EpflEstimator(Estimator):
-    def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None):
-        super(EpflEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors, active_nodes)
+    def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None, source = None):
+        super(EpflEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors, active_nodes, source)
         
-    def estimate_source(self, use_directions=True, mu_delay=2.0):
+    def estimate_source(self, use_directions=True, mu_delay=2.0, pd=False):
         '''Estimates the source based on the observed information.
         Arguments:
             use_directions          tells whether to use information about who sent the the message
             mu                      the mean spreading delay
+            pd                      return the pd or a real estimate?
             
         Outputs:
             estimate                the index of the node that is estimated'''
@@ -153,10 +157,19 @@ class EpflEstimator(Estimator):
         print('the candidates are ', max_indices)
         # print('the spies are ', spies)
         if max_indices:
-            return random.choice(max_indices)
+            if pd:
+                if self.source in max_indices:
+                    return 1.0 / len(max_indices)
+                else:
+                    return 0.0
+            else:
+                return random.choice(max_indices)
         else:
             print('No valid nodes!')
-            return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] >= 0])
+            if pd:
+                return 1.0 / len(self.adjacency)
+            else:
+                return random.choice([node for node in range(len(self.adjacency)) if self.active_nodes[node] >= 0])
         
     def compute_lambda_inv(self, node, spies, spanning_tree = None):
         num_spies = len(spies)
@@ -377,8 +390,8 @@ class LeiYingEstimator(Estimator):
 
     
 class FirstSpyEstimator(Estimator):
-    def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None):
-        super(FirstSpyEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors, active_nodes)
+    def __init__(self, adjacency, malicious_nodes, timestamps, infectors = None, active_nodes = None, source = None):
+        super(FirstSpyEstimator, self).__init__(adjacency, malicious_nodes, timestamps, infectors, active_nodes, source)
         
     def estimate_source(self, use_directions=True):
         '''Estimates the source based on the observed information.
@@ -420,11 +433,11 @@ class FirstSpyEstimator(Estimator):
                 return estimate
         return estimate
         
+        
 class AdaptiveEstimator(Estimator):
     def __init__(self, adjacency, malicious_nodes, active_nodes = None, degrees_rv = None, source=None):
-        super(AdaptiveEstimator, self).__init__(adjacency, malicious_nodes, active_nodes)
+        super(AdaptiveEstimator, self).__init__(adjacency, malicious_nodes, active_nodes, source=source)
         self.degrees_rv = degrees_rv
-        self.source = source
         
     def estimate_source(self):
         '''Estimates the source based on the observed information.
@@ -435,13 +448,7 @@ class AdaptiveEstimator(Estimator):
         Outputs:
             estimate                the index of the node that is estimated'''
             
-        # Sums the distance to the unvisited nodes and visited nodes at time_t
-        max_likelihood = None
-        max_indices = []
-        # print('Spies: ',[(spy.node,spy.level,spy.up_node) for spy in self.malicious_nodes])
-        # print('adjacency: ',self.adjacency)
         spies = self.malicious_nodes
-        
         up_spies = [spy for spy in spies if spy.up_node] # level is greater than zero
         if not up_spies:
             print('NO UPS')
@@ -463,7 +470,7 @@ class AdaptiveEstimator(Estimator):
                     break
             #  find the pivot
             # print('Spies are', [spy.node for spy in self.malicious_nodes])
-            # print('Up Spy is', up_spy.node)
+            # print('Up Spy is', up_spy.node, ' with level ', up_spy.level)
             # print('Num nodes: ', len(self.graph.nodes()))
             # print('Num spies: ', len(self.malicious_nodes))
             result = self.compute_min_pivot(up_spy)
@@ -474,16 +481,12 @@ class AdaptiveEstimator(Estimator):
         
         # estimate = random.choice(paths)
         
+        candidates = self.get_max_likelihoods(paths)
         # FOr regular trees, the true source is always among the ML estimates
-        if len(self.degrees_rv.xk) == 1:
-            pd = 1.0 / len(paths)
+        pd = 1.0 / len(candidates)
         # For irregular trees, sometimes not
-        else:
-            candidates = self.get_max_likelihoods(paths)
-            if self.source in candidates:
-                pd = 1.0 / len(paths)
-            else:
-                pd = 0.0
+        if self.source not in candidates:
+            pd = 0.0
         
 
         # print('Positive levels',[level for level in self.levels if level > 0])
@@ -505,7 +508,7 @@ class AdaptiveEstimator(Estimator):
             if up_spy.infector in path:
                 # print('nodes',spy.node,'end',up_spy.node,'path', path)
                 pivot = self.compute_pivot(up_spy, spy, path)
-                # print('found pivot',pivot)
+                # print('found pivot',pivot.node)
                 # print('level',pivot.level, pivots)
                 if pivot.level < up_spy.level:
                     pivots[pivot.level] = pivot.node
@@ -523,6 +526,7 @@ class AdaptiveEstimator(Estimator):
             if pivot >= 0:
                 return (hops, pivot, neighbor_list) 
             hops += 1
+        print('There were no viable pivots.',len(self.malicious_nodes))
         return None
         
     def compute_min_pivot_down(self, down_spy1, down_spy2):
@@ -559,7 +563,6 @@ class AdaptiveEstimator(Estimator):
         feasible_paths = []
         for candidate in all_paths:
             path = nx.shortest_path(self.graph, candidate[0], min_pivot)
-            # print('path: ',path)
             if path[-2] not in bad_neighbors:
                 feasible_paths += [path]
         
@@ -585,21 +588,106 @@ class AdaptiveEstimator(Estimator):
         return pivot
         
     def get_max_likelihoods(self, paths):
+    
+        if len(self.degrees_rv.xk) == 1:
+            return [path[0] for path in paths]
+    
         likelihoods = []
         for path in paths:
-            # print('path:', path)
             degrees = list(self.graph.degree(path[1:]).values())
             degrees = self.degrees_rv.draw_values(1) + degrees
-            # print('degrees:', degrees)
             degrees = [1.0/(degrees[i]-1) if i != 0 else 1.0/(degrees[i]) for i in range(len(degrees)) ]
-            # print('modified degrees:', degrees)
             likelihoods.append(np.prod(degrees))
-        # print('likelihoods',likelihoods)
-        max_likelihoods = []
+        # Get the ML candidates
+        candidates = []
         for path,likelihood in zip(paths, likelihoods):
             if likelihood == max(likelihoods):
-                max_likelihoods.append(path[0])
+                candidates.append(path[0])
             
-        return max_likelihoods
+        return candidates
             
+        
+class DatasetAdaptiveEstimator(AdaptiveEstimator):
+    def __init__(self, adjacency, who_infected, malicious_nodes, active_nodes = None, source=None, max_infection=3):
+        super(DatasetAdaptiveEstimator, self).__init__(who_infected, malicious_nodes, active_nodes,source=source)
+        self.contact_adjacency = adjacency
+        self.max_infection = max_infection
+        
+        self.contact_graph = nx.Graph()
+        # Populate the graph
+        for idx in range(len(adjacency)):
+            self.contact_graph.add_node(idx)
+            edges = self.contact_adjacency[idx]
+            for e in edges:
+                self.contact_graph.add_edge(idx, e)
+        
+        
+    def get_max_likelihoods(self, paths):
+        ''' Need to overwrite the method in AdaptiveEstimator that uses degree distributions'''
+        # return [path[0] for path in paths]
+        # paths = [[] for i in range(len(who_infected))]
+        # paths[virtual_source].append(virtual_source)
+        # paths = get_paths(paths, who_infected, adjacency, virtual_source, virtual_source)
+        
+        # maximum length from leaf to virtual source
+        likelihoods = []
+        for path in paths:
+            likelihood = self.compute_graph_likelihood(path)
+            likelihoods.append(likelihood)
+            
+        # Get the ML candidates
+        candidates = []
+        max_likelihood = max(likelihoods)
+        for path,likelihood in zip(paths, likelihoods):
+            if likelihood == max_likelihood:
+                candidates.append(path[0])
+            
+        return candidates
+        
+    def compute_graph_likelihood(self, path):
+        if len(path) == 1:
+            print('ERROR: The source is a spy!', self.source, path)
+            return [self.source]
+    
+        # print('THe path is ',path)
+        # print('THe source is ',self.source)
+        path.pop()
+        nodes = self.contact_graph.nodes()
+        num_nodes = self.contact_graph.number_of_nodes()
+        # print('There are ',num_nodes,'nodes here')
+        # print('And the other graph has ',self.graph.number_of_nodes(),'nodes')
+        new_infection_pattern = [0 for i in nodes]
+        new_infection_pattern[self.source] = 1
+        new_who_infected = [[] for i in nodes]
+
+        # first element is just the source itself
+        current_vs = path.pop(0)
+        path_source = current_vs
+        # log likelihood of the 1st passage to the VS
+        likelihood = math.log(1.0/self.contact_graph.degree(self.source))
+        if not path:
+            path.append(path_source)
+            # print('path',path)
+            return likelihood
+        # get the new vs
+        current_vs = path.pop(0)
+        new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(self.source, [current_vs], new_infection_pattern, new_who_infected)
+        
+        # infect the neighbors of the new vs
+        infected = [i for i in self.adjacency[current_vs]]
+        infected.remove(path_source)
+        
+        new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
+        likelihood += estimation.infect_set_likelihood(infected, self.contact_adjacency[current_vs], new_infection_pattern, self.max_infection)
+        
+        while path:
+            new_infection_pattern, new_who_infected, likelihood = estimation.pass_branch_message_likelihood(current_vs, path[0], new_infection_pattern, 
+                                                                    self.contact_adjacency, self.max_infection, new_who_infected, self.adjacency, likelihood)
+            current_vs = path.pop(0)
+            
+        path.append(path_source)
+        
+        # print('path',path)
+        return likelihood
+        
         

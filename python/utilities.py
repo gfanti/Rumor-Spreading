@@ -36,16 +36,20 @@ def parse_args(args):
     # Spy probability
     if args.spy_probability:
         spy_probability = float(args.spy_probability)
+        spies = True
     else: 
         spy_probability = 0.0
+        spies = False
     if args.diffusion:
         diffusion = bool(args.diffusion)
-        if args.delay_parameter:
-            delay_parameter = float(args.delay_parameter)
-        else:
-            delay_parameter = 0.5
-        return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,
-                'spy_probability':spy_probability,'run':run, 'delay_parameter':delay_parameter}
+        # return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,
+                # 'spy_probability':spy_probability,'run':run, 'delay_parameter':delay_parameter}
+    else:
+        diffusion = False
+    if args.delay_parameter:
+        delay_parameter = float(args.delay_parameter)
+    else:
+        delay_parameter = 0.5
     if args.alt:
         alt = bool(args.alt)
     else:
@@ -54,10 +58,13 @@ def parse_args(args):
         database = args.db
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
         
-        return {'trials':trials, 'write_results':write_results, 'database':database, 'run':run} 
+        # return {'trials':trials, 'write_results':write_results, 'database':database, 'run':run, 'spy_probability':spy_probability} 
+    else:
+        database = None
         
     print("The parameters are:\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")
-    return {'trials':trials, 'write_results':write_results, 'alt':alt,'spy_probability':spy_probability,'run':run}
+    return {'trials':trials, 'write_results':write_results, 'alt':alt,'spy_probability':spy_probability,'run':run, 
+            'diffusion':diffusion, 'spies':spies, 'delay_parameter':delay_parameter, 'database':database}
 
 def nCk(n, k):
     '''

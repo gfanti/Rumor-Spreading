@@ -202,9 +202,6 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     nodes = range(len(who_infected))
     new_infection_pattern = [0 for i in nodes]
     new_infection_pattern[source] = 1
-    
-    
-    
     new_who_infected = [[] for i in nodes]
 
     # first element is just the source itself
@@ -213,9 +210,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     likelihood = math.log(1.0/len(adjacency[source]))
     
     # get the new vs
-    if not vs_path == 1:
-        return likelihood
-    current_vs = vs_path.pop(0)
+    current_vs = path.pop(0)
     new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
     
     # infect the neighbors of the new vs
@@ -224,12 +219,10 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     
     new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(current_vs, infected, new_infection_pattern, new_who_infected)
     likelihood += infect_set_likelihood(infected, adjacency[current_vs], new_infection_pattern, max_infection)
-    m = 1 # depth of tree
     
     while vs_path:
         new_infection_pattern, new_who_infected, likelihood = pass_branch_message_likelihood(current_vs, vs_path[0], new_infection_pattern, adjacency, max_infection, new_who_infected, who_infected, likelihood)
         current_vs = vs_path.pop(0)
-        m += 1
         
     return likelihood
 

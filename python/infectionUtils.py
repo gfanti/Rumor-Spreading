@@ -1,11 +1,11 @@
 #infectionUtils.py useful functions for infection
-import estimation_spies
 import utilities
 import random
 from scipy import stats
 import numpy as np
 import time
 import networkx as nx
+import estimation_spies     # TODO: get rid of this and function estimate_source_spies!
 
 
 def compute_permutation_likelihood(T,m):
@@ -260,7 +260,7 @@ def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, kno
         who_infected.append([node])
     if not known_degrees:
         # degrees += degrees_rv.rvs(size=len(children)).tolist()
-        degrees += degrees_rv.draw_values(len(children))
+        degrees += degrees_rv.draw_values(len(children))    
     elif len(known_degrees) >= len(children):
         degrees += known_degrees[0:len(children)]
         known_degrees[0:len(children)] = []
@@ -276,12 +276,8 @@ def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, kno
     
     
 def estimate_source_spies(max_time, est_times, source, who_infected, num_infected, timestamps, spies,
-                          active_nodes, active_spies, infectors=None, q=None):
+                          active_nodes, active_spies, infectors=None, diffusion=False, q=None):
     
-    if q is not None:
-        diffusion = True
-    else:
-        diffusion = False
         
     ml_correct, spy_correct, lei_correct = [],[],[]
     hop_distances, spy_hop_distances,lei_hop_distances = [],[],[]
