@@ -32,9 +32,9 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([3]) for i in range(1)]
-    # pks = [(0.5, 0.5) for i in range(4)]
-    pks = [(1.0) for i in range(1)] 
+    xks = [np.array([2,3]) for i in range(1)]
+    pks = [(0.5, 0.5) for i in range(1)]
+    # pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
     # est_times = [6,8,10,12,14,16] # d=3
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [12]
+    est_times = [10]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
@@ -53,7 +53,8 @@ if __name__ == "__main__":
         print('Checking xks = ',xk)
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
         degrees_rv2 = Multinomial(xk, pk)
-        max_infection = max_infection + 1
+        # max_infection = max_infection + 1
+        max_infection = max(xk) - 1
         
         print('Diffusion: ', diffusion)
        
@@ -112,7 +113,10 @@ if __name__ == "__main__":
             print('num_infected: ', num_infected)
 
             if write_results:
-                filename = 'results/spies/regular_trees/results_'
+                if spies:
+                    filename = 'results/spies/results_'
+                else:
+                    filename = 'results/snapshot/results_'
                 xk_str = [str(i) for i in xk]
                 if isinstance(pk, (int, float, complex)):
                     pk_str = str(round(pk,1))

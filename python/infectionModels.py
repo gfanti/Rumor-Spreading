@@ -199,7 +199,6 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
     degrees = degrees_rv.draw_values(1)
     
     while timesteps < max_time:
-    
             
         if timesteps == 0:
             virtual_source = 1
@@ -267,6 +266,7 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         tot_num_infected[timesteps] = num_infected
         timesteps += 1
         # print('num infected', num_infected)
+        # print(who_infected)
     
     # Deal with any additional snapshots
     original_m = m
