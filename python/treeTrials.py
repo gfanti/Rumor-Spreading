@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([2,3]) for i in range(1)]
-    pks = [(0.5, 0.5) for i in range(1)]
+    xks = [np.array([3,5]) for i in range(1)]
+    pks = [(0.5,0.5) for i in range(1)]
     # pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
@@ -42,11 +42,11 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [10]
+    est_times = [6]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
-    max_infection = 0 #min(xks) - 1
+    max_infection = 100 #min(xks) - 1
     additional_time = 0  # collect additional_time more estimates after the first snapshot
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
@@ -54,81 +54,70 @@ if __name__ == "__main__":
         degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
         degrees_rv2 = Multinomial(xk, pk)
         # max_infection = max_infection + 1
-        max_infection = max(xk) - 1
+        # max_infection = max(xk) - 1
         
         print('Diffusion: ', diffusion)
        
-        # handle the different formats that are tolerated for irregular vs regular trees
-        if isinstance(pk, list) == 1:
-            if diffusion:
-                print('Diffusion code')
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 4)[:2]
-            else:
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 3)
-            pd_rc, pd_jc = results
-            
+        # Run regular diffusion
+        if diffusion:
+            num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
+                                                                degrees_rv2, method=4, q=delay_parameter, 
+                                                                spy_probability = spy_probability,
+                                                                est_times = est_times)[:2]
+            pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
+            print('hop distances',hop_distances)
             if write_results:
-                filename = 'results/regular_tree_results_d_' + str(xk) + '.mat'
-                io.savemat(filename, {'pd_rc':np.array(pd_rc), 'pd_jc':np.array(pd_jc), 'num_infected':np.array(num_infected)})
-        else:
-            if diffusion:
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection,
-                                                                    degrees_rv2, method=4, q=delay_parameter, 
-                                                                    spy_probability = spy_probability,
-                                                                    est_times = est_times)[:2]
-                pd_ml, hop_distances, pd_spy, spy_hop_distances, pd_lei, lei_hop_distances = results
-                print('hop distances',hop_distances)
-                if write_results:
-                    prob = str(Decimal(spy_probability).quantize(Decimal('.01')))
-                    if isinstance(pk, float):
-                        xk_str = str(xk[0])
-                        pk_str = str(pk)
-                        filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+prob + '_q_' + str(delay_parameter) + '_run_' + str(run) + '.mat'
-                    else:
-                        xk_str = [str(i) for i in xk]
-                        pk_str = [str(round(i,1)) for i in pk]
-                        filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+ prob + '_run_' + str(run) + '.mat'
-                    io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
-                                         'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
-                                         'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
-                                         'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
-                    continue
-            # Check for weighted spreading
-            elif alt:
-                num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 1)[:2]
-            # Use regular spreading
-            else:
-                if additional_time:
-                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
-                                                                      additional_time = additional_time)[:2]
-                    print("additional pd: ", additional_pd)
+                prob = str(Decimal(spy_probability).quantize(Decimal('.01')))
+                if isinstance(pk, float):
+                    xk_str = str(xk[0])
+                    pk_str = str(pk)
+                    filename = 'results/spies/regular_trees/results_' + xk_str + "_" + pk_str + '_spies_'+prob + '_q_' + str(delay_parameter) + '_run_' + str(run) + '.mat'
                 else:
-                    num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
-                                                                        spy_probability=spy_probability,
-                                                                        diffusion=diffusion,
-                                                                        spies=spies,
-                                                                        est_times = est_times)[:2]
-                pd_ml, additional_pd, hop_distances = results
-            print("pd ML: ", pd_ml)
-            print('num_infected: ', num_infected)
-
-            if write_results:
-                if spies:
-                    filename = 'results/spies/results_'
-                else:
-                    filename = 'results/snapshot/results_'
-                xk_str = [str(i) for i in xk]
-                if isinstance(pk, (int, float, complex)):
-                    pk_str = str(round(pk,1))
-                    filename += xk_str[0] + "_" + pk_str
-                else:
+                    xk_str = [str(i) for i in xk]
                     pk_str = [str(round(i,1)) for i in pk]
-                    filename += "_".join(xk_str) + "_" + "_".join(pk_str)
-                if spy_probability > 0.0:
-                    filename += 'spies' + str(Decimal(spy_probability).quantize(Decimal('.01')))
-                if alt:
-                    filename += '_alt'
-                filename += '_run_' + str(run) + '.mat'
-                
+                    filename = 'results/spies/regular_trees/results_' + "_".join(xk_str) + "_" + "_".join(pk_str) + 'spies_'+ prob + '_run_' + str(run) + '.mat'
                 io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
+                                     'pd_spy':np.array(pd_spy), 'spy_hop_distances':np.array(spy_hop_distances),
+                                     'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
                                      'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
+                continue
+        # Run adaptive diffusion (weighted spreading)
+        elif alt:
+            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 1)[:2]
+        # Run adaptive diffusion (normal)
+        else:
+            if additional_time:
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
+                                                                  additional_time = additional_time)[:2]
+                print("additional pd: ", additional_pd)
+            else:
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
+                                                                    spy_probability=spy_probability,
+                                                                    diffusion=diffusion,
+                                                                    spies=spies,
+                                                                    est_times = est_times)[:2]
+            pd_ml, additional_pd, hop_distances = results
+        print("pd ML: ", pd_ml)
+        print('num_infected: ', num_infected)
+
+        # write results, if desired
+        if write_results:
+            if spies:
+                filename = 'results/spies/results_'
+            else:
+                filename = 'results/snapshot/results_'
+            xk_str = [str(i) for i in xk]
+            if isinstance(pk, (int, float, complex)):
+                pk_str = str(round(pk,1))
+                filename += xk_str[0] + "_" + pk_str
+            else:
+                pk_str = [str(round(i,1)) for i in pk]
+                filename += "_".join(xk_str) + "_" + "_".join(pk_str)
+            if spy_probability > 0.0:
+                filename += 'spies' + str(Decimal(spy_probability).quantize(Decimal('.01')))
+            if alt:
+                filename += '_alt'
+            filename += '_run_' + str(run) + '.mat'
+            
+            io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
+                                 'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
