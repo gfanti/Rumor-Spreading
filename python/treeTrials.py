@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [6]
+    est_times = [9]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
@@ -86,6 +86,7 @@ if __name__ == "__main__":
         # Run adaptive diffusion (weighted spreading by neighbor degree)
         elif alt:
             num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 1)[:2]
+            hop_distances = []
         # Run adaptive diffusion (normal)
         else:
             if additional_time:
