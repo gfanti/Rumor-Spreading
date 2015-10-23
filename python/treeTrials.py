@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([3,5]) for i in range(1)]
-    pks = [(0.5,0.5) for i in range(1)]
+    xks = [np.array([2,3]) for i in range(1)]
+    pks = [(0.3,0.7) for i in range(1)]
     # pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
