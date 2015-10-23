@@ -51,7 +51,9 @@ if __name__ == "__main__":
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
         print('Checking xks = ',xk)
-        degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
+        # degrees_rv = stats.rv_discrete(name='rv_discrete', values=(xk, pk))
+
+        # Make a random variable out of the support and probabilities listed
         degrees_rv2 = Multinomial(xk, pk)
         # max_infection = max_infection + 1
         # max_infection = max(xk) - 1
@@ -81,17 +83,17 @@ if __name__ == "__main__":
                                      'pd_lei':np.array(pd_lei), 'lei_hop_distances':np.array(lei_hop_distances),
                                      'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
                 continue
-        # Run adaptive diffusion (weighted spreading)
+        # Run adaptive diffusion (weighted spreading by neighbor degree)
         elif alt:
-            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 1)[:2]
+            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 1)[:2]
         # Run adaptive diffusion (normal)
         else:
             if additional_time:
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 0,
                                                                   additional_time = additional_time)[:2]
                 print("additional pd: ", additional_pd)
             else:
-                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, 0,
+                num_infected, results = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 0,
                                                                     spy_probability=spy_probability,
                                                                     diffusion=diffusion,
                                                                     spies=spies,

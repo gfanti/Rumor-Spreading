@@ -349,7 +349,7 @@ def ml_message_passing_irregular_trees_alt(d, depth, messages, degrees, who_infe
         for i in who_infected[called]:
              if i != calling:
                 if len(who_infected[i])==1:
-                    prob[1] = sum([degrees_rv.rvs(size=1) for k in range(degrees[i])])
+                    prob[1] = sum([degrees_rv.draw_values(1)[0] for k in range(degrees[i])])
                 messages[i] = messages[called] * (d-1) * correction_factor * prob[0] / prob[1]
                 messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, degrees, who_infected, i, called, degrees_rv,prob) 
     return messages 

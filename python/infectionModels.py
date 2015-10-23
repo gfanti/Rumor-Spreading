@@ -10,6 +10,7 @@ import networkx as nx
 import time
 from infectionUtils import *
 from spies import *
+from multinomial import *
 # import cProfile
 
 #Semi-distributed adaptive diffusion over regular trees (uses two timesteps)
@@ -178,7 +179,7 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             sources by their degree)
       
     Returns:
-        infection_details: A list of the characteristics of the infection:
+            infection_details: A list of the characteristics of the infection:
             - tot_num_infected: Total number of infected nodes at each timestep
             - infection_pattern: Which nodes got infected in which order
             - who_infected: Adjacency matrix of infected subgraph
@@ -231,8 +232,9 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                     # print(weights)
                     weights = [i/sum(weights) for i in weights]
                     # print(weights)
-                    virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
-                    virtual_source_candidate = virtual_source_rv.rvs(size=1)
+                    # virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
+                    virtual_source_rv = Multinomial(current_neighbors, weights)
+                    virtual_source_candidate = virtual_source_rv.draw_values(1)[0]
                     # print('alt: ', timesteps, degrees[virtual_source_candidate])
                 else: # Choose uniformly between all virtual sources
                     virtual_source_candidate = [previous_vs]
@@ -256,7 +258,7 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         # Estimating the error
         # ML estimate
         if alt: # Call the weighted estimator
-            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, 1)
+            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, mode = 1)
         else: # Call the regular estimator
             ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
             # print('who_infected: ', who_infected)
@@ -281,7 +283,6 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         timesteps += 1
     
     infection_details = (tot_num_infected, infection_pattern, who_infected, additional_hops)
-    
     return infection_details, ml_correct, additional_pd
     
 # Semi-distributed adaptive diffusion over predefined random tree    

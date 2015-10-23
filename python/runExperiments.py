@@ -194,10 +194,10 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                 hop_distances = []
             # print(additional_hops)
             additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
-        elif method == 1:    # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading
+        elif method == 1:    # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading (i.e. weigh infection by degree)
             infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, 
-                                                                                                 degrees_rv, True, spy_probability=spy_probability)
-            num_infected, infection_pattern, who_infected = infection_details
+                                                                                                 degrees_rv, alt = True)[:2]
+            num_infected, infection_pattern, who_infected = infection_details[:3]
         elif method == 2:    # Infect nodes with adaptive diffusion over a pre-determined irregular tree
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
             num_infected, infection_pattern, who_infected = infection_details
