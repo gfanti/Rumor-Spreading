@@ -1,4 +1,5 @@
 import estimation_spies
+import estimation_snapshot
 import time
 import networkx as nx
 import random
@@ -10,7 +11,28 @@ class Adversary(object):
         self.who_infected = who_infected
         self.num_infected = len(who_infected)
 
-        
+class SnapshotAdversary(Adversary):
+    def __init__(self, source, who_infected = []):
+        super(SnapshotAdversary, self).__init__(source, who_infected)
+        self.ml_correct = []
+
+class PAADSnapshotAdversary(SnapshotAdversary):
+    def __init__(self, source, degrees_rv, who_infected=[]):
+        super(PAADSnapshotAdversary, self).__init__(source, who_infected)
+        self.degrees_rv = degrees_rv
+
+    def update_data(self, who_infected, degrees, src_neighbors):
+        self.who_infected = who_infected
+        self.degrees = degrees
+        self.src_neighbors = src_neighbors
+
+    def get_estimates(self, virtual_source):
+
+        estimator = estimation_snapshot.PAADEstimatorRandTree(self.who_infected, self.source, self.degrees, self.degrees_rv, num_hops_pa = 1)
+        estimate = estimator.estimate_source(virtual_source, self.src_neighbors)
+
+        self.ml_correct.append(estimate == self.source)
+
 
 class SpyAdversary(Adversary):
     def __init__(self, source, who_infected, spies_info):

@@ -206,7 +206,14 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
             previous_vs = 0
             
             # infect twice in one direction, always
-            degrees, who_infected = infectionUtils.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
+            if alt:
+                degrees, who_infected, src_neighbors = infectionUtils.infect_nodes_randtree(source, [virtual_source], degrees, 
+                                                                                            degrees_rv, who_infected, alt=True)
+            else:
+                degrees, who_infected = infectionUtils.infect_nodes_randtree(source, [virtual_source], degrees, degrees_rv, who_infected)[:2]
+            # print("source:", source, "vs:", virtual_source, "degrees", degrees)
+            # print("who_infected:", who_infected)
+            # print("neighbors:", src_neighbors)
             infection_pattern, who_infected = pass_branch_message_randtree(source, virtual_source, degrees, degrees_rv, who_infected)[:2]
             m = 1       # the virtual source is always going to be 1 hop away from the true source
             
@@ -227,14 +234,16 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
                 # find a direction to move
                 if alt: # Weight new virtual sources by their degree
                     current_neighbors.remove(previous_vs)
-                    weights = [degrees[i] for i in current_neighbors]
+                    weights = [degrees[i]-1 for i in current_neighbors]
                     # print('degree', degrees[virtual_source])
-                    # print(weights)
-                    weights = [i/sum(weights) for i in weights]
+                    # print('early weights',weights)
+                    weights = [float(i)/sum(weights) for i in weights]
+                    # print('neighbors',current_neighbors)
                     # print(weights)
                     # virtual_source_rv = stats.rv_discrete(name='rv_discrete', values=(current_neighbors, weights))
                     virtual_source_rv = Multinomial(current_neighbors, weights)
                     virtual_source_candidate = virtual_source_rv.draw_values(1)[0]
+                    # print('picked ',virtual_source_candidate)
                     # print('alt: ', timesteps, degrees[virtual_source_candidate])
                 else: # Choose uniformly between all virtual sources
                     virtual_source_candidate = [previous_vs]
@@ -258,7 +267,11 @@ def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
         # Estimating the error
         # ML estimate
         if alt: # Call the weighted estimator
-            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, degrees_rv, mode = 1)
+            ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected, 
+                                                                 degrees_rv, mode = 1, zero_neighbors = src_neighbors)
+            # print('final who_infected: ', who_infected)
+            # print('final degrees', degrees)
+            # print('ml estimate is ', ml_estimate)
         else: # Call the regular estimator
             ml_estimate = estimation.ml_estimate_irregular_trees(max_infection, max_time, virtual_source, degrees, who_infected)
             # print('who_infected: ', who_infected)

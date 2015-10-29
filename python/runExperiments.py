@@ -3,6 +3,7 @@ import utilities
 import buildGraph
 import infectionModels
 import spyInfectionModels
+import snapshotInfectionModels
 import exportGraph
 import adversaries
 import random
@@ -168,7 +169,7 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     avg_lei_hop_distance = [0 for i in range(max_time)]
     
     for trial in range(trials):
-        if trial % 10 == 0:
+        if trial % 500 == 0:
             print('\nTrial ',trial, ' / ',trials-1)
         source = 0
         if method == 0:      # Infect nodes with adaptive diffusion over an irregular tree (possibly with multiple snapshots)
@@ -194,10 +195,23 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                 hop_distances = []
             # print(additional_hops)
             additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
-        elif method == 1:    # Infect nodes with adaptive diffusion over an irregular tree, alternative spreading (i.e. weigh infection by degree)
+        elif method == 1:    # Infect nodes with preferential attachment adaptive diffusion (PAAD) over random tree
+            paad_infector = snapshotInfectionModels.RandTreePAADInfector(source, max_infection, max_time, degrees_rv)
+            paad_adversary = adversaries.PAADSnapshotAdversary(source, degrees_rv)
+            for idx in range(max_time):
+                # Spread one more timestep
+                paad_infector.infect_one_timestep()
+                # Estimate the source
+                paad_adversary.update_data(paad_infector.who_infected, paad_infector.degrees, paad_infector.src_neighbors)
+                paad_adversary.get_estimates(paad_infector.virtual_source)
+
+            ml_correct = paad_adversary.ml_correct
+            num_infected = paad_infector.tot_num_infected
+
             infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, 
                                                                                                  degrees_rv, alt = True)[:2]
             num_infected, infection_pattern, who_infected = infection_details[:3]
+            # print("OLD SPREADING", who_infected)
         elif method == 2:    # Infect nodes with adaptive diffusion over a pre-determined irregular tree
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
             num_infected, infection_pattern, who_infected = infection_details

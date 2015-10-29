@@ -7,6 +7,13 @@ import time
 import networkx as nx
 import estimation_spies     # TODO: get rid of this and function estimate_source_spies!
 
+# The infector class that will be used in all subsequent infection code
+class Infector(object):
+    def __init__(self):
+        
+        self.who_infected = None
+        self.num_infected = 0
+        self.source = None
 
 def compute_permutation_likelihood(T,m):
     return float(prob_G_given_m_and_T(T,m)) / pow(d,m)
@@ -240,7 +247,7 @@ def infect_nodes(node, children, infection_pattern, who_infected, dist_from_sour
             dist_from_source[child] = dist_from_source[node] + 1
     return infection_pattern, who_infected, dist_from_source
  
-def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[]):
+def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, known_degrees=[], alt = False):
     '''
     infect_nodes infects the nodes listed in children from 'node' over a random tree
     Arguments:
@@ -260,7 +267,17 @@ def infect_nodes_randtree(node, children, degrees, degrees_rv, who_infected, kno
         who_infected.append([node])
     if not known_degrees:
         # degrees += degrees_rv.rvs(size=len(children)).tolist()
-        degrees += degrees_rv.draw_values(len(children))    
+        if alt: # This is only true for T=0,
+            # At T=0, we need to choose the next virtual source proportionally to degree
+            src_neighbors = degrees_rv.draw_values(degrees[node])
+            weights = [float(j-1) / (sum(src_neighbors) - degrees[node]) for j in src_neighbors]
+            # print('WEIGHTS', weights)
+            vs = np.random.choice(src_neighbors, p = weights)
+            src_neighbors.remove(vs)
+            degrees += [vs]
+            return degrees, who_infected, src_neighbors
+        else:
+            degrees += degrees_rv.draw_values(len(children))    
     elif len(known_degrees) >= len(children):
         degrees += known_degrees[0:len(children)]
         known_degrees[0:len(children)] = []

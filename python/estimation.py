@@ -336,33 +336,66 @@ def ml_message_passing_irregular_trees(d, depth, messages, degrees, who_infected
     return messages 
 
 # ML over irregular infinite trees using weighted spreading
-def ml_message_passing_irregular_trees_alt(d, depth, messages, degrees, who_infected, called, calling, degrees_rv, prev_prob=0): 
-    prob = [float(degrees[calling]),sum([degrees[k] for k in who_infected[called]])]
+def ml_message_passing_irregular_trees_alt(d, depth, messages, degrees, who_infected, called, calling, degrees_rv, prev_prob=0, zero_neighbors = None): 
+    # print('degrees[calling]',degrees[calling])
+    # print('who_infected[called]',who_infected[called])
+    prob = [float(degrees[called]-1),sum([degrees[k]-1 for k in who_infected[called]])]
+    called_deg = float(degrees[called])-1
     if called == calling:
+        # print(calling, "calling ", called)
         for i in who_infected[called]:
             # probability of choosing the vs instead of another neighbor
-            messages[i] = messages[calling] * d * prob[0] / prob[1]
-            messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, degrees, who_infected, i, called,degrees_rv, prob) 
+            prob = [called_deg, sum([degrees[k]-1 for k in who_infected[i]])]
+            if len(who_infected[i])==1:
+                if (i==0): # If we're checking the zero node, which is always the true source, use the original degrees drawn
+                    # print("zero_neighbors:",zero_neighbors)
+                    prob[1] = sum(zero_neighbors) - len(zero_neighbors) + degrees[called]-1 # account for the degrees of the neighbors
+                else: # Otherwise, draw the neighbor degrees now
+                    # prob[1] = sum([degrees_rv.draw_values(1)[0] for k in range(degrees[i])])
+                    prob[1] = sum(degrees_rv.draw_values(degrees[i]-1)) - (degrees[i]-1) + degrees[called] - 1 # account for the degrees of the neighbors
+                    # print('other prob for ', i, " is ", prob[1]-degrees[called] + 1)
+                    # print("degrees", degrees)
+                    # print("who_infected", who_infected)
+            # messages[i] = messages[calling] * d * prob[0] / prob[1]
+            messages[i] = messages[called] * prob[0] / prob[1]
+            # print("degrees", degrees)
+            # print("who_infected", who_infected)
+            # print("message at ",i," is ", messages[i])
+            messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, degrees, who_infected, i, called,degrees_rv, prob, zero_neighbors) 
 
     elif len(who_infected[called]) != 1: #if not a leaf
-        correction_factor = float(prev_prob[1]) / (prev_prob[1]-degrees[called])
+        # correction_factor = float(prev_prob[1]) / (prev_prob[1]-degrees[called])
         for i in who_infected[called]:
              if i != calling:
+                prob = [called_deg, sum([degrees[k]-1 for k in who_infected[i]])]
                 if len(who_infected[i])==1:
-                    prob[1] = sum([degrees_rv.draw_values(1)[0] for k in range(degrees[i])])
-                messages[i] = messages[called] * (d-1) * correction_factor * prob[0] / prob[1]
-                messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, degrees, who_infected, i, called, degrees_rv,prob) 
+                    if (i==0): # If we're checking the zero node, which is always the true source, use the original degrees drawn
+                        # print("zero_neighbors:",zero_neighbors)
+                        prob[1] = sum(zero_neighbors) - len(zero_neighbors) + degrees[called]-1 # account for the degrees of the neighbors
+                    else: # Otherwise, draw the neighbor degrees now
+                        prob[1] = sum(degrees_rv.draw_values(degrees[i]-1)) - (degrees[i]-1) + degrees[called] - 1 # account for the degrees of the neighbors
+                        # print('other prob for ', i, " is ", prob[1]-degrees[called]+1)
+                        # print("degrees", degrees)
+                        # print("who_infected", who_infected)
+            
+                correction_factor = float(prev_prob[1]) / (prev_prob[1]-(degrees[i]-1))
+                # print("correction_factor for ", i, " is ", correction_factor)
+                # print("final prob for ", i, " is ", prob)
+                # messages[i] = messages[called] * (d-1) * correction_factor * prob[0] / prob[1]
+                messages[i] = messages[called] * correction_factor * prob[0] / prob[1]
+                # print("message at ",i," is ", messages[i])
+                messages = ml_message_passing_irregular_trees_alt(d, depth+1, messages, degrees, who_infected, i, called, degrees_rv,prob, zero_neighbors) 
     return messages 
     
     
-def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who_infected, degrees_rv=[], mode=0):        
+def ml_estimate_irregular_trees(d, T, virtual_source, degrees, who_infected, degrees_rv=[], mode=0, zero_neighbors = None):        
     # Returns the ML estimate of the source over an irregular tree 
     # Inputs:
     #
     #       d:                      assumed regular degree - 1 (for computing the alphas)
     #       T:                      number of timesteps to run
     #       virtual_source:         the virtual source of the infected subtree
-    #       infected_nodes_degree:  the degrees of all infected nodes
+    #       degrees:  the degrees of all infected nodes
     #       who_infected:           adjacency matrix of the infected subgraph
     #       mode:                   which type of estimator to use (mode=0 -> use the regular estimator, mode=1-> use the alternative estimator
     #
@@ -378,12 +411,18 @@ def ml_estimate_irregular_trees(d, T, virtual_source, infected_nodes_degree, who
     # print('who infected', who_infected)
 
     # computing the likelihood of all the nodes via a message passing algorithm
-    if mode==0:
-        messages = ml_message_passing_irregular_trees(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source)
-    else:
-        messages = ml_message_passing_irregular_trees_alt(d, 0, messages, infected_nodes_degree, who_infected, virtual_source, virtual_source, degrees_rv)
+    if (mode == 0):
+        messages = ml_message_passing_irregular_trees(d, 0, messages, degrees, who_infected, virtual_source, virtual_source)
+    elif (mode == 1):   
+        old_messages = ml_message_passing_irregular_trees_alt(d, 0, messages, degrees, who_infected, virtual_source, 
+                                                          virtual_source, degrees_rv, zero_neighbors = zero_neighbors)
+        messages = [old_messages[i] if len(who_infected[i])==1 else 0 for i in range(len(old_messages))]
+        # print('messages are ',messages)
+        # print('who_infected:',who_infected)
+        # print('degrees:',degrees)
+        # print('zero neighbors are:',zero_neighbors)
     # print('MESSAGES ARE : ', messages)
-    # print('DEGREES ARE : ', infected_nodes_degree)
+    # print('DEGREES ARE : ', degrees)
     
     # the likelihood of the virtual source is equal to zero
     # print('messages', messages)

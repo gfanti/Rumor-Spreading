@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([2,3]) for i in range(1)]
-    pks = [(0.3,0.7) for i in range(1)]
+    xks = [np.array([3]) for i in range(1)]
+    pks = [(1) for i in range(1)]
     # pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [9]
+    est_times = [2]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     

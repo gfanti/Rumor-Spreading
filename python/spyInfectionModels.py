@@ -1,12 +1,12 @@
 from spies import *
 from infectionUtils import *
 
-class Infector(object):
-    def __init__(self):
+# class Infector(object):
+#     def __init__(self):
         
-        self.who_infected = None
-        self.num_infected = 0
-        self.source = None
+#         self.who_infected = None
+#         self.num_infected = 0
+#         self.source = None
 
 class DatasetDiffusionInfector(Infector):
     def __init__(self, adjacency, spy_probability, max_infection, q=0.5):
