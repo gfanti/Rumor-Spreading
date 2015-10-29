@@ -188,13 +188,26 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                     ml_correct, hop_distances = results
                     additional_pd = [0 for i in range(additional_time)]
             else:
-                # snapshot, adaptive diffusion
-                infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
-                                                                                                 degrees_rv, additional_time = additional_time, alt=False)
-                num_infected, infection_pattern, who_infected, additional_hops = infection_details
-                hop_distances = []
-            # print(additional_hops)
-            additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
+                # snapshot, adaptive diffusion over a random tree
+                ad_infector = snapshotInfectionModels.RandTreeADInfector(source, max_infection, max_time, degrees_rv)
+                ad_adversary = adversaries.ADSnapshotAdversary(source, degrees_rv, d_o = max_infection + 1) # should this be max_infection + 1?
+                for idx in range(max_time):
+                    # Spread one more timestep
+                    ad_infector.infect_one_timestep()
+                    # Estimate the source
+                    ad_adversary.update_data(ad_infector.who_infected, ad_infector.degrees)
+                    ad_adversary.get_estimates(ad_infector.virtual_source)
+
+                ml_correct = ad_adversary.ml_correct
+                print("ml_correct", ml_correct)
+                num_infected = ad_infector.tot_num_infected
+
+                # infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
+                #                                                                                  degrees_rv, additional_time = additional_time, alt=False)
+                # num_infected, infection_pattern, who_infected, additional_hops = infection_details
+                # hop_distances = []
+            # # print(additional_hops)
+            # additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
         elif method == 1:    # Infect nodes with preferential attachment adaptive diffusion (PAAD) over random tree
             paad_infector = snapshotInfectionModels.RandTreePAADInfector(source, max_infection, max_time, degrees_rv)
             paad_adversary = adversaries.PAADSnapshotAdversary(source, degrees_rv)
@@ -208,9 +221,9 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
             ml_correct = paad_adversary.ml_correct
             num_infected = paad_infector.tot_num_infected
 
-            infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, 
-                                                                                                 degrees_rv, alt = True)[:2]
-            num_infected, infection_pattern, who_infected = infection_details[:3]
+            # infection_details, ml_correct = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, 
+            #                                                                                      degrees_rv, alt = True)[:2]
+            # num_infected, infection_pattern, who_infected = infection_details[:3]
             # print("OLD SPREADING", who_infected)
         elif method == 2:    # Infect nodes with adaptive diffusion over a pre-determined irregular tree
             infection_details, ml_correct, rand_leaf_correct, known_degrees = infectionModels.infect_nodes_adaptive_planned_irregular_tree(source, max_time, max_infection, degrees_rv, known_degrees)
@@ -244,7 +257,8 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
     
     if method == 0:
         additional_pd_mean = [i/trials for i in additional_pd_mean]
-        results = (pd_ml, additional_pd_mean, hop_distances)
+        # results = (pd_ml, additional_pd_mean, hop_distances)
+        results = (pd_ml, additional_pd_mean, avg_hop_distance)
     elif method == 1:
         results = (pd_ml)
     elif method == 2:

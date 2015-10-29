@@ -164,9 +164,7 @@ def infect_nodes_diffusion_irregular_tree(source, max_time, degrees_rv, q = 0.5,
     
 # Semi-distributed adaptive diffusion over irregular trees (uses 1 timestep, this
 # is the version we used in our simulations)
-def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
-                                              degrees_rv, alt = False,
-                                              additional_time = 0):
+def infect_nodes_adaptive_irregular_tree(source, max_time, max_infection, degrees_rv, alt = False, additional_time = 0):
     '''infect_nodes_adaptive_irregular_tree runs the spreading model over an irregular
     tree.
     

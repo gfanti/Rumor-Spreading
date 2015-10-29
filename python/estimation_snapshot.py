@@ -22,10 +22,9 @@ class Estimator(object):
         return nx.diameter(self.graph)
 
 
-class ADEstimatorRandTree(Estimator):
-    def __init__(self, who_infected, source, degrees, degrees_rv, d_o):
-        super(ADEstimatorRandTree, self).__init__(who_infected, source)
-        self.num_hops_pa = num_hops_pa
+class EstimatorRandTree(Estimator):
+    def __init__(self, who_infected, source, degrees, degrees_rv):
+        super(EstimatorRandTree, self).__init__(who_infected, source)
         self.degrees = degrees
         self.degrees_rv = degrees_rv
 
@@ -57,12 +56,66 @@ class ADEstimatorRandTree(Estimator):
     #     return ml_estimate
 
 
-class PAADEstimatorRandTree(Estimator):
+
+class ADEstimatorRandTree(EstimatorRandTree):
+    def __init__(self, who_infected, source, degrees, degrees_rv, d_o = 1000):
+        super(ADEstimatorRandTree, self).__init__(who_infected, source, degrees, degrees_rv)
+        self.d_o = d_o
+
+    def estimate_source(self, virtual_source):
+        '''Estimates the source based on the observed information.
+        Arguments:
+            virtual_source          the virtual_source of the infected graph
+            src_neighbors           the uninfected neighbors of the source
+            
+        Outputs:
+            estimate                the index of the node that is estimated'''
+
+        # initialize the messages vector to likelihood 1
+        p = 1.0
+        self.messages = [p]*len(self.who_infected)
+
+        self.pass_messages(virtual_source, virtual_source)
+        messages = [self.messages[i] if (i != virtual_source) else 0 for i in range(len(self.messages))]
+
+        # finding the likelihood of the ML estimate
+        max_message = max(messages)
+        # finding the indices of most likely nodes
+        max_message_ind = [i for i, j in enumerate(messages) if j == max_message]
+        # ml_estimate = max_message_ind[random.randrange(0,len(max_message_ind),1)]
+        # print('choices', max_message_ind)
+        # ml_estimate = random.choice(max_message_ind)
+        ml_estimate = 1.0 / len(max_message_ind)
+        return ml_estimate
+
+    def pass_messages(self, calling, called):
+    # ML over irregular infinite trees
+    # def ml_message_passing_irregular_trees(d, depth, messages, degrees, who_infected, called, calling): 
+        # d:            d+1 is the assumed regular degree (aka d_o)
+        # depth:        distance from the virtual source
+        # messages:     the likelihood messages stored at each node
+        # degrees:      degree of each node in the irregular graph
+        # who_infected: adjacency matrix of the infected subgraph
+        # called:       which node received the message
+        # calling:      which node passed the message
+
+        if len(self.who_infected[called]) != 1: #if not a leaf
+            for i in self.who_infected[called]:
+                if i != calling:
+                    if called == calling:
+                        # (Prob. of choosing virtual source) x (Prob. infecting infected nodes)
+                        self.messages[i] = self.messages[calling] * (1.0 / (self.degrees[i])) * self.d_o
+                    else:
+                        self.messages[i] = self.messages[called] * (self.d_o - 1) * \
+                            (float(self.degrees[called])/(self.degrees[called]-1)) * (1.0/(self.degrees[i]))
+                    self.pass_messages(called, i) 
+
+    
+
+class PAADEstimatorRandTree(EstimatorRandTree):
     def __init__(self, who_infected, source, degrees, degrees_rv, num_hops_pa = 1):
-        super(PAADEstimatorRandTree, self).__init__(who_infected, source)
+        super(PAADEstimatorRandTree, self).__init__(who_infected, source, degrees, degrees_rv)
         self.num_hops_pa = num_hops_pa
-        self.degrees = degrees
-        self.degrees_rv = degrees_rv
 
     def estimate_source(self, virtual_source, src_neighbors):
         '''Estimates the source based on the observed information.
@@ -81,14 +134,14 @@ class PAADEstimatorRandTree(Estimator):
 
         self.pass_messages(virtual_source, virtual_source)
         messages = [self.messages[i] if len(self.who_infected[i])==1 else 0 for i in range(len(self.messages))]
-
         # finding the likelihood of the ML estimate
         max_message = max(messages)
         # finding the indices of most likely nodes
         max_message_ind = [i for i, j in enumerate(messages) if j == max_message]
         # ml_estimate = max_message_ind[random.randrange(0,len(max_message_ind),1)]
         # print('choices', max_message_ind)
-        ml_estimate = random.choice(max_message_ind)
+        # ml_estimate = random.choice(max_message_ind)
+        ml_estimate = 1.0 / len(max_message_ind)
         return ml_estimate
 
     def pass_messages(self, calling, called, prev_prob = []):

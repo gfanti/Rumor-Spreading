@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([3]) for i in range(1)]
+    xks = [np.array([2]) for i in range(1)]
     pks = [(1) for i in range(1)]
     # pks = [(1.0) for i in range(1)] 
     
@@ -42,11 +42,11 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [2]
+    est_times = [3]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
-    max_infection = 100 #min(xks) - 1
+    max_infection = 1 #min(xks) - 1
     additional_time = 0  # collect additional_time more estimates after the first snapshot
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):

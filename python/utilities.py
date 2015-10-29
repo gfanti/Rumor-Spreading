@@ -93,16 +93,22 @@ def compute_alpha(m,T,d):
           alpha:      the probability of keeping the virtual source where it is
     '''
     
-    alpha1 = float(N(T,d)) / (N(T+1,d))
-    if m == 1:
-        return alpha1
-    else:
-        # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
-        if d > 2:
-            alpha = (float(1-alpha1)/(d-2))/pow(d-1,m-1) + float(alpha1*(d-1)-1)/(d-2)
-        else:
-            alpha = float(T-m) / T
-    return alpha
+
+    if d > 2:
+        return float(pow((d-1),(T-m+1))-1)/(pow(d-1,T+1)-1)
+    elif d == 2:
+        return float(T-m+1)/(T+1)
+
+    # alpha1 = float(N(T,d)) / (N(T+1,d))
+    # if m == 1:
+    #     return alpha1
+    # else:
+    #     # alpha = alpha1 + compute_alpha(m-1,T,d)/(d-1) - 1/(d-1) 
+    #     if d > 2:
+    #         alpha = (float(1-alpha1)/(d-2))/pow(d-1,m-1) + float(alpha1*(d-1)-1)/(d-2)
+    #     else:
+    #         alpha = float(T-m) / T
+    # return alpha
 
 def N(T,d):
     '''
@@ -121,11 +127,11 @@ def N(T,d):
         n = 1 + 2*T
     return n
     
-def N_nodes(T,d):
-    '''
-    Compute the number of nodes that appear in a graph at time T in a d-regular graph
-    '''
-    return N(T,d) + 1
+# def N_nodes(T,d):
+#     '''
+#     Compute the number of nodes that appear in a graph at time T in a d-regular graph
+#     '''
+#     return N(T,d) + 1
 
 def print_adjacency(adj, true):
     for i in range(len(adj)):

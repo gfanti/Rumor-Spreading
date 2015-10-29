@@ -11,19 +11,41 @@ class Adversary(object):
         self.who_infected = who_infected
         self.num_infected = len(who_infected)
 
+
+''' ------------------SNAPSHOT ADVERSARIES------------------------'''
 class SnapshotAdversary(Adversary):
     def __init__(self, source, who_infected = []):
         super(SnapshotAdversary, self).__init__(source, who_infected)
         self.ml_correct = []
 
-class PAADSnapshotAdversary(SnapshotAdversary):
-    def __init__(self, source, degrees_rv, who_infected=[]):
-        super(PAADSnapshotAdversary, self).__init__(source, who_infected)
-        self.degrees_rv = degrees_rv
-
-    def update_data(self, who_infected, degrees, src_neighbors):
+    def update_data(self, who_infected, degrees):
         self.who_infected = who_infected
         self.degrees = degrees
+
+class RandTreeSnapshotAdversary(SnapshotAdversary):
+    def __init__(self, source, degrees_rv, who_infected=[]):
+        super(RandTreeSnapshotAdversary, self).__init__(source, who_infected)
+        self.degrees_rv = degrees_rv
+
+class ADSnapshotAdversary(RandTreeSnapshotAdversary):
+    def __init__(self, source, degrees_rv, who_infected=[], d_o = 1000):
+        super(ADSnapshotAdversary, self).__init__(source, degrees_rv, who_infected)
+        self.d_o = d_o
+
+    def get_estimates(self, virtual_source):
+
+        estimator = estimation_snapshot.ADEstimatorRandTree(self.who_infected, self.source, self.degrees, self.degrees_rv, self.d_o)
+        estimate = estimator.estimate_source(virtual_source)
+
+        # self.ml_correct.append(estimate == self.source)
+        self.ml_correct.append(estimate)
+
+class PAADSnapshotAdversary(RandTreeSnapshotAdversary):
+    def __init__(self, source, degrees_rv, who_infected=[]):
+        super(PAADSnapshotAdversary, self).__init__(source, degrees_rv, who_infected)
+
+    def update_data(self, who_infected, degrees, src_neighbors):
+        super(PAADSnapshotAdversary, self).update_data(who_infected, degrees)
         self.src_neighbors = src_neighbors
 
     def get_estimates(self, virtual_source):
@@ -31,9 +53,12 @@ class PAADSnapshotAdversary(SnapshotAdversary):
         estimator = estimation_snapshot.PAADEstimatorRandTree(self.who_infected, self.source, self.degrees, self.degrees_rv, num_hops_pa = 1)
         estimate = estimator.estimate_source(virtual_source, self.src_neighbors)
 
-        self.ml_correct.append(estimate == self.source)
+        # self.ml_correct.append(estimate == self.source)
+        self.ml_correct.append(estimate)
 
 
+
+''' ------------------SPY-BASED ADVERSARIES------------------------'''
 class SpyAdversary(Adversary):
     def __init__(self, source, who_infected, spies_info):
         super(SpyAdversary, self).__init__(source, who_infected)
