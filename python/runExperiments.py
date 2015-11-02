@@ -130,7 +130,7 @@ def run_dataset(filename, min_degree, trials, max_time=100, max_infection = -1, 
     
 '''Run a random tree'''    
 def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_degrees=[], additional_time = 0,
-                 q = 0.5, spies=False, spy_probability = 0.0, diffusion=False, est_times=None):
+                 q = 0.5, spies=False, spy_probability = 0.0, diffusion=False, est_times=None, num_hops_pa = 0):
     ''' Run dataset runs a spreading algorithm over a dataset. 
     
     Arguments:    
@@ -199,23 +199,22 @@ def run_randtree(trials, max_time, max_infection, degrees_rv, method=0, known_de
                     ad_adversary.get_estimates(ad_infector.virtual_source)
 
                 ml_correct = ad_adversary.ml_correct
-                print("ml_correct", ml_correct)
                 num_infected = ad_infector.tot_num_infected
 
-                # infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
-                #                                                                                  degrees_rv, additional_time = additional_time, alt=False)
-                # num_infected, infection_pattern, who_infected, additional_hops = infection_details
-                # hop_distances = []
+            #     infection_details, ml_correct, additional_pd = infectionModels.infect_nodes_adaptive_irregular_tree(source, max_time, max_infection,
+            #                                                                                      degrees_rv, additional_time = additional_time, alt=False)
+            #     num_infected, infection_pattern, who_infected, additional_hops = infection_details
+            #     hop_distances = []
             # # print(additional_hops)
             # additional_pd_mean = [i+j for (i,j) in zip(additional_pd, additional_pd_mean)]
         elif method == 1:    # Infect nodes with preferential attachment adaptive diffusion (PAAD) over random tree
-            paad_infector = snapshotInfectionModels.RandTreePAADInfector(source, max_infection, max_time, degrees_rv)
-            paad_adversary = adversaries.PAADSnapshotAdversary(source, degrees_rv)
+            paad_infector = snapshotInfectionModels.RandTreePAADInfector(source, max_infection, max_time, degrees_rv, num_hops_pa=num_hops_pa)
+            paad_adversary = adversaries.PAADSnapshotAdversary(source, degrees_rv, num_hops_pa=num_hops_pa)
             for idx in range(max_time):
                 # Spread one more timestep
                 paad_infector.infect_one_timestep()
                 # Estimate the source
-                paad_adversary.update_data(paad_infector.who_infected, paad_infector.degrees, paad_infector.src_neighbors)
+                paad_adversary.update_data(paad_infector.who_infected, paad_infector.degrees, paad_infector.local_neighborhood)
                 paad_adversary.get_estimates(paad_infector.virtual_source)
 
             ml_correct = paad_adversary.ml_correct

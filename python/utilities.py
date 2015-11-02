@@ -13,7 +13,7 @@ def parse_args(args):
     parser.add_argument("-d", '--diffusion', help = "Spread using regular diffusion? (default: false)", action = 'store_true')
     parser.add_argument("-s", '--spy_probability', help = "Probability of a node being a spy (default: 0)", type = float, default = 0.0)
     parser.add_argument("-q", '--delay_parameter', help = "Probability of passing the message in a timestep (default: 0)", type = float, default = 0.5)
-    parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: false)", action = 'store_true')
+    parser.add_argument("-a", '--alt', help = "Use alternative spreading model? (default: 1)", type = int, default = 0)
     parser.add_argument("--db", nargs = '?', help = "Which database to use(fb=facebook, pg=power grid)", type = str, default = 'none')
     parser.add_argument("-r", '--run', help = "Which run number to save as", type = int, default = 0)
     args = parser.parse_args()
@@ -40,6 +40,7 @@ def parse_args(args):
     else: 
         spy_probability = 0.0
         spies = False
+    # Diffusion
     if args.diffusion:
         diffusion = bool(args.diffusion)
         # return {'trials':trials, 'write_results':write_results, 'diffusion':diffusion,
@@ -50,10 +51,11 @@ def parse_args(args):
         delay_parameter = float(args.delay_parameter)
     else:
         delay_parameter = 0.5
+    # Preferential attachment spreading
     if args.alt:
-        alt = bool(args.alt)
+        alt = int(args.alt)
     else:
-        alt = False # Use the alternative method of spreading virtual sources?
+        alt = 0 # Use the alternative method of spreading virtual sources?
     if not (args.db == 'none'):
         database = args.db
         print("The parameters are:\nDataset = ", database,"\nTrials = ",trials,"\nwrite_results = ",write_results,"\nalt = ",alt,"\n")

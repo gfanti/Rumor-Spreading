@@ -41,17 +41,19 @@ class ADSnapshotAdversary(RandTreeSnapshotAdversary):
         self.ml_correct.append(estimate)
 
 class PAADSnapshotAdversary(RandTreeSnapshotAdversary):
-    def __init__(self, source, degrees_rv, who_infected=[]):
+    def __init__(self, source, degrees_rv, num_hops_pa=1, who_infected=[]):
         super(PAADSnapshotAdversary, self).__init__(source, degrees_rv, who_infected)
+        self.num_hops_pa = num_hops_pa
 
-    def update_data(self, who_infected, degrees, src_neighbors):
+    def update_data(self, who_infected, degrees, local_neighborhood):
         super(PAADSnapshotAdversary, self).update_data(who_infected, degrees)
-        self.src_neighbors = src_neighbors
+        self.local_neighborhood = local_neighborhood
 
     def get_estimates(self, virtual_source):
 
-        estimator = estimation_snapshot.PAADEstimatorRandTree(self.who_infected, self.source, self.degrees, self.degrees_rv, num_hops_pa = 1)
-        estimate = estimator.estimate_source(virtual_source, self.src_neighbors)
+        estimator = estimation_snapshot.PAADEstimatorRandTree(self.who_infected, self.source, \
+                                                              self.degrees, self.degrees_rv, num_hops_pa = self.num_hops_pa)
+        estimate = estimator.estimate_source(virtual_source, self.local_neighborhood)
 
         # self.ml_correct.append(estimate == self.source)
         self.ml_correct.append(estimate)

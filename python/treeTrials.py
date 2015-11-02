@@ -13,7 +13,7 @@ if __name__ == "__main__":
     args = utilities.parse_args(sys.argv)
     trials = args.get('trials', 1)
     write_results = args.get('write_results', False)
-    alt = args.get('alt', False)
+    alt = args.get('alt', 0)
     run = args.get('run', 0)
     diffusion = args.get('diffusion', False)
     spies = args.get('spies', False)
@@ -32,8 +32,8 @@ if __name__ == "__main__":
     # d=3, T=12 => E[N] = 155
     # d=4, T=8 => E[N] = 120
     # d=5, T=7 => E[N] = 157
-    xks = [np.array([2]) for i in range(1)]
-    pks = [(1) for i in range(1)]
+    xks = [np.array([2,3]) for i in range(1)]
+    pks = [(0.5,0.5) for i in range(1)]
     # pks = [(1.0) for i in range(1)] 
     
     # est_times: the timestamps at which to estimate the source
@@ -42,11 +42,11 @@ if __name__ == "__main__":
     # est_times = [6,8,9,10,11] # d=4
     # est_times = [6,7,8,9] # d=5
     # est_times = [50,100,150,200] # d=2
-    est_times = [3]
+    est_times = [7]
     
     max_times = [max(est_times) for i in range(1)] # the maximum time we run the algorithm
     
-    max_infection = 1 #min(xks) - 1
+    max_infection = 1000 #min(xks) - 1
     additional_time = 0  # collect additional_time more estimates after the first snapshot
         
     for (xk, pk, max_time) in zip(xks, pks, max_times):
@@ -59,6 +59,7 @@ if __name__ == "__main__":
         # max_infection = max(xk) - 1
         
         print('Diffusion: ', diffusion)
+        print("alt is", alt)
        
         # Run regular diffusion
         if diffusion:
@@ -84,8 +85,8 @@ if __name__ == "__main__":
                                      'num_infected':np.array(num_infected), 'est_times':np.array(est_times)})
                 continue
         # Run adaptive diffusion (weighted spreading by neighbor degree)
-        elif alt:
-            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 1)[:2]
+        elif alt > 0:
+            num_infected, pd_ml = runExperiments.run_randtree(trials, max_time, max_infection, degrees_rv2, method = 1, num_hops_pa = alt)[:2]
             hop_distances = []
         # Run adaptive diffusion (normal)
         else:
@@ -118,8 +119,8 @@ if __name__ == "__main__":
                 filename += "_".join(xk_str) + "_" + "_".join(pk_str)
             if spy_probability > 0.0:
                 filename += 'spies' + str(Decimal(spy_probability).quantize(Decimal('.01')))
-            if alt:
-                filename += '_alt'
+            if alt > 0:
+                filename += '_alt_' + str(alt)
             filename += '_run_' + str(run) + '.mat'
             
             io.savemat(filename,{'pd_ml':np.array(pd_ml), 'hop_distances':np.array(hop_distances),
