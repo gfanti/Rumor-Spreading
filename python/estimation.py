@@ -162,9 +162,9 @@ def max_likelihood(who_infected, virtual_source, adjacency, max_infection, dist_
         if (len(who_infected[i]) == 1) and len(paths[i]) == max_length:
             vs_path = [k for k in paths[i]]
             likelihoods[i] = compute_graph_likelihood(i, who_infected, adjacency, vs_path, max_infection)
-            if likelihoods[i] == float('-inf'):
-                print('negative inf', i,vs_path, adjacency[i])
-                print('likelihood: ',math.log(1.0/len(adjacency[i])))
+            # if likelihoods[i] == float('-inf'):
+                # print('negative inf', i,vs_path, adjacency[i])
+                # print('likelihood: ',math.log(1.0/len(adjacency[i])))
             # else:
                 # print('not inf', i,vs_path)
                 
@@ -198,7 +198,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
         utilities.print_adjacency(who_infected, adjacency)
         return float('-inf')
     
-    vs_path.pop()
+    # vs_path.pop()
     nodes = range(len(who_infected))
     new_infection_pattern = [0 for i in nodes]
     new_infection_pattern[source] = 1
@@ -210,7 +210,7 @@ def compute_graph_likelihood(source, who_infected, adjacency, vs_path, max_infec
     likelihood = math.log(1.0/len(adjacency[source]))
     
     # get the new vs
-    current_vs = path.pop(0)
+    current_vs = vs_path.pop(0)
     new_infection_pattern, new_who_infected, tmp = infectionUtils.infect_nodes(source, [current_vs], new_infection_pattern, new_who_infected)
     
     # infect the neighbors of the new vs

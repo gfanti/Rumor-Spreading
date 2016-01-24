@@ -24,7 +24,7 @@ if __name__ == "__main__":
     # Dataset options:
     # 1: Facebook
     # 2: Power Grid
-    if _platform == "linux" or _platform == "linux2":
+    if _platform == "linux" or _platform == "linux2" or _platform == "darwin":
         # linux
         prefix = '../data/'
     elif _platform == "win32":
@@ -40,8 +40,8 @@ if __name__ == "__main__":
         filename = prefix + 'out.opsahl-powergrid'
     
     min_degree = 3;
-    max_time = 10
-    max_infection = 20
+    max_time = 5
+    max_infection = 3 # 20 for spies, 3 for snapshot
     max_graph_size = 10000
     
     start = time.clock()

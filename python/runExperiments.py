@@ -36,6 +36,8 @@ def run_dataset(filename, min_degree, trials, max_time=100, max_infection = -1, 
     print('----Graph statistics:-----')
     degrees = [len(item) for item in adjacency]
     mean_degree = np.mean(degrees)
+    num_threes = len([i for i in degrees if i == 3])
+    print("the number of 3s is ", float(num_threes) / len(degrees))
     print('the mean degree is',mean_degree)
     print('num true nodes',num_true_nodes)
     print('---------------------------\n')
@@ -94,7 +96,7 @@ def run_dataset(filename, min_degree, trials, max_time=100, max_infection = -1, 
                 num_infected, infection_pattern, who_infected, results = infectionModels.infect_nodes_adaptive_diff(source,adjacency,max_time,max_infection)
                 # unpack the results
                 jordan_correct, rumor_correct, ml_leaf_correct, ml_leaf_dists = results
-                print('dists', ml_leaf_dists)
+                # print('dists', ml_leaf_dists)
             
                 pd_jordan = [i+j for (i,j) in zip(pd_jordan, jordan_correct)]
                 pd_rumor = [i+j for (i,j) in zip(pd_rumor, rumor_correct)]
